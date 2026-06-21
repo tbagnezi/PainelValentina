@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valentina - Conciliação de Custos</title>
+    <style>
+        :root {
+            --bg-page: #e2e7e1; 
+            --bg-card-main: #f3f5f2; 
+            --bg-card-dark: #1b1b1d; 
+            --bg-white: #ffffff;
+            
+            /* Status da Timeline */
+            --status-atual-bg: #111111;   
+            --status-pago-txt: #86cf86;    
+            --status-aberto-txt: #e67e7e;  
+            --status-futuro: #b0b6b1;      
+            
+            /* Cores de Inicialização dos Gráficos */
+            --color-fixo: #b4a8ff;       
+            --color-extra: #ffcc80;      
+            
+            --txt-dark: #111111;
+            --txt-muted: #6e7570;
+            --txt-light: #ffffff;
+            
+            --radius-main: 28px;
+            --radius-sub: 18px;
+            --radius-pill: 40px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-page);
+            color: var(--txt-dark);
+            padding: 40px 20px;
+        }
+
+        .container-app {
+            max-width: 1280px; 
+            margin: 0 auto;
+        }
+
+        /* TIMELINE */
+        .timeline-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center; 
+            background-color: rgba(0, 0, 0, 0.03);
+            padding: 6px 12px;
+            border-radius: var(--radius-pill);
+            margin-bottom: 32px;
+            position: relative;
+        }
+
+        .ano-container {
+            position: relative;
+            padding: 0 16px 0 6px;
+            border-right: 1px solid rgba(0, 0, 0, 0.1);
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .ano-btn {
+            background: none;
+            border: none;
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--txt-dark);
+            cursor: pointer;
+            outline: none;
+        }
+
+        .ano-dropdown {
+            position: absolute;
+            top: calc(100% + 12px);
+            left: 0;
+            background-color: var(--bg-card-dark);
+            border-radius: 14px;
+            padding: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 100;
+        }
+
+        .ano-dropdown.active { display: flex; }
+
+        .ano-option {
+            background: none;
+            border: none;
+            color: #8c8c93;
+            padding: 8px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            text-align: left;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .ano-option:hover, .ano-option.active {
+            color: var(--txt-light);
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .slider-meses-container {
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            flex-grow: 1;
+            max-width: fit-content; 
+        }
+
+        .slider-meses {
+            display: flex;
+            align-items: center;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            gap: 4px;
+            -ms-overflow-style: none;  
+            scrollbar-width: none;  
+        }
+
+        .slider-meses::-webkit-scrollbar { display: none; }
+
+        .aba-mes {
+            background: none;
+            border: none;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            border-radius: var(--radius-pill);
+            outline: none;
+        }
+
+        .aba-mes.pago { color: var(--status-pago-txt); }
+        .aba-mes.aberto { color: var(--status-aberto-txt); }
+        .aba-mes.futuro { color: var(--status-futuro); cursor: default; }
+        .aba-mes.atual {
+            background-color: var(--status-atual-bg);
+            color: var(--txt-light);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 8px 20px;
+        }
+
+        .seta-navegacao {
+            background: none;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--txt-muted);
+            cursor: pointer;
+            padding: 0 8px;
+            display: none; 
+            align-items: center;
+            justify-content: center;
+            outline: none;
+        }
+        .seta-navegacao:hover { color: var(--txt-dark); }
+
+        /* DASHBOARD GRID */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1.15fr 0.925fr 0.925fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1150px) {
+            .dashboard { grid-template-columns: 1fr; }
+        }
+
+        /* COLUNA 1: BALANÇO */
+        .card-balanco {
+            background-color: var(--bg-card-dark);
+            color: var(--txt-light);
+            border-radius: var(--radius-main);
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 520px;
+            height: 100%;
+        }
+        .balanco-title { font-size: 13px; color: #8c8c93; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+        .balanco-label { font-size: 14px; color: #aaabb2; margin-bottom: 4px; }
+        .balanco-valor { font-size: 38px; font-weight: 700; letter-spacing: -0.5px; }
+        
+        .container-grafico-horizontal {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin: auto 0;
+            padding: 10px 0;
+        }
+
+        .linha-grafico {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+        }
+
+        .linha-meta-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 700;
+            color: #aaabb2;
+            padding-left: 2px;
+        }
+
+        .barra-horizontal-wrapper {
+            width: 100%;
+            background-color: #2b2b2e; 
+            border-radius: var(--radius-sub);
+            height: 50px; 
+            position: relative;
+        }
+
+        .barra-preenchimento-h {
+            height: 100%;
+            border-radius: var(--radius-sub);
+            width: 0; 
+            transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end; 
+            padding-right: 16px; 
+            font-size: 13px;
+            font-weight: 800;
+            color: #111111; 
+        }
+
+        .barra-preenchimento-h.v-fixo { background-color: var(--color-fixo); }
+        .barra-preenchimento-h.v-extra { background-color: var(--color-extra); }
+        
+        /* COLUNAS BENTO */
+        .bento-card { background-color: var(--bg-card-main); border-radius: var(--radius-main); padding: 32px; display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .card-header h2 { font-size: 20px; font-weight: 700; }
+        .btn-action-icon { background: var(--bg-white); border: none; width: 38px; height: 38px; border-radius: 50%; font-weight: bold; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.04); font-size: 18px; transition: transform 0.2s; outline: none; }
+        .btn-action-icon:hover { transform: scale(1.08); }
+
+        .grid-itens { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        
+        .sub-card-item { 
+            background-color: var(--bg-white); 
+            border-radius: var(--radius-sub); 
+            padding: 16px 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            height: 52px;
+            border-left: 5px solid transparent;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .sub-card-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        }
+        .item-detalhes { pointer-events: none; }
+        .item-detalhes .item-nome { font-weight: 600; font-size: 14px; color: var(--txt-dark); }
+        .item-detalhes .item-meta { font-size: 11px; color: var(--txt-muted); text-transform: capitalize; }
+        .item-preco { font-weight: 700; font-size: 15px; pointer-events: none; }
+
+        .card-totalizador { margin-top: 16px; padding: 16px 12px 0 12px; border-top: 1px dashed #d5dad4; display: flex; justify-content: space-between; align-items: center; }
+        .card-totalizador .total-valor { font-size: 20px; font-weight: 700; }
+
+        /* BOTÕES */
+        .barra-botoes { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 12px; margin-top: 12px; }
+        .btn-footer { padding: 14px 28px; border-radius: var(--radius-pill); font-size: 15px; font-weight: 600; cursor: pointer; border: none; outline: none; display: flex; align-items: center; gap: 8px; transition: transform 0.2s, box-shadow 0.2s; }
+        .btn-footer:hover { transform: translateY(-1px); }
+        
+        .btn-footer.wpp { background-color: var(--bg-white); color: #111111; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .btn-footer.wpp svg { fill: #25D366; } 
+        .btn-footer.liquidar { background-color: var(--txt-dark); color: var(--txt-light); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+        /* MODAIS STRUCT */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; z-index: 1000; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-box { background-color: var(--bg-card-main); border-radius: var(--radius-main); padding: 32px; width: 100%; max-width: 460px; box-shadow: 0 20px 40px rgba(0,0,0,0.15); transform: translateY(20px); transition: transform 0.3s ease; }
+        .modal-overlay.active .modal-box { transform: translateY(0); }
+        
+        .modal-box h3 { font-size: 22px; font-weight: 700; margin-bottom: 20px; letter-spacing: -0.5px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+        .form-group label { font-size: 13px; font-weight: 600; color: var(--txt-muted); }
+        
+        .form-group input, .form-group select { 
+            padding: 12px 16px; border-radius: var(--radius-sub); border: 1px solid #d5dad4; 
+            background-color: var(--bg-white); font-size: 15px; outline: none; width: 100%;
+        }
+
+        .color-picker-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 4px;
+        }
+        .color-picker-container input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            cursor: pointer;
+            padding: 0;
+            background: none;
+        }
+        .color-picker-container input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        .color-picker-container input[type="color"]::-webkit-color-swatch { border: 1px solid #d5dad4; border-radius: 50%; }
+
+        .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+        .btn-modal { padding: 12px 20px; border-radius: var(--radius-pill); border: none; font-weight: 600; cursor: pointer; font-size: 14px; outline: none; }
+        .btn-modal.salvar { background-color: var(--txt-dark); color: var(--txt-light); }
+        .btn-modal.cancelar { background-color: transparent; border: 1px solid #d5dad4; }
+    </style>
+</head>
+<body>
+
+    <div class="container-app">
+        
+        <!-- TIMELINE -->
+        <div class="timeline-wrapper">
+            <div class="ano-container">
+                <button class="ano-btn" id="btnAno" onclick="toggleAnoDropdown()"><span id="anoSelecionado">2026</span></button>
+                <div class="ano-dropdown" id="dropdownAno">
+                    <button class="ano-option active" onclick="selecionarAno(2026, this)">2026</button>
+                    <button class="ano-option" onclick="selecionarAno(2027, this)">2027</button>
+                    <button class="ano-option" onclick="selecionarAno(2028, this)">2028</button>
+                    <button class="ano-option" onclick="selecionarAno(2029, this)">2029</button>
+                    <button class="ano-option" onclick="selecionarAno(2030, this)">2030</button>
+                </div>
+            </div>
+            
+            <button class="seta-navegacao" id="setaEsq" onclick="scrollTimeline(-150)">‹</button>
+            <div class="slider-meses-container" id="sliderContainer">
+                <nav class="slider-meses" id="timelineSlider">
+                    <button class="aba-mes pago">Jan</button>
+                    <button class="aba-mes aberto">Fev</button> 
+                    <button class="aba-mes pago">Mar</button>
+                    <button class="aba-mes pago">Abr</button>
+                    <button class="aba-mes pago">Mai</button>
+                    <button class="aba-mes atual">Jun</button> 
+                    <button class="aba-mes futuro">Jul</button>
+                    <button class="aba-mes futuro">Ago</button>
+                    <button class="aba-mes futuro">Set</button>
+                    <button class="aba-mes futuro">Out</button>
+                    <button class="aba-mes futuro">Nov</button>
+                    <button class="aba-mes futuro">Dez</button>
+                </nav>
+            </div>
+            <button class="seta-navegacao" id="setaDir" onclick="scrollTimeline(150)">›</button>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div class="dashboard">
+            
+            <!-- COLUNA 1: BALANÇO -->
+            <div class="card-balanco">
+                <div>
+                    <div class="balanco-header" style="margin-bottom: 4px;">
+                        <span class="balanco-title">Participação no Mês</span>
+                    </div>
+                    <div class="balanco-resultado" style="margin-top: 0; border: none; padding-top: 0; margin-bottom: 24px;">
+                        <p class="balanco-label">Total Geral a Receber</p>
+                        <div class="balanco-valor"><span>R$ 1.443,00</span></div>
+                    </div>
+                </div>
+                
+                <div class="container-grafico-horizontal" id="graficoBarrasContainer">
+                    <div class="linha-grafico" id="graph-v-fixo">
+                        <div class="linha-meta-info"><span>Gastos Fixos</span></div>
+                        <div class="barra-horizontal-wrapper">
+                            <div class="barra-preenchimento-h v-fixo" style="width: 47%;">47%</div>
+                        </div>
+                    </div>
+                    <div class="linha-grafico" id="graph-v-extra">
+                        <div class="linha-meta-info"><span>Gastos Extraordinários</span></div>
+                        <div class="barra-horizontal-wrapper">
+                            <div class="barra-preenchimento-h v-extra" style="width: 53%;">53%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="linha-grafico" id="graph-edenred">
+                        <div class="linha-meta-info"><span id="lbl-graph-edenred">Edenred</span></div>
+                        <div class="barra-horizontal-wrapper">
+                            <div class="barra-preenchimento-h" id="bar-graph-edenred" style="width: 69%; background-color: #a2f4a2;">69%</div>
+                        </div>
+                    </div>
+                    <div class="linha-grafico" id="graph-catena">
+                        <div class="linha-meta-info"><span id="lbl-graph-catena">Catena Padel</span></div>
+                        <div class="barra-horizontal-wrapper">
+                            <div class="barra-preenchimento-h" id="bar-graph-catena" style="width: 31%; background-color: #81d4fa;">31%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUNA 2: GASTOS VALENTINA (ALINHADO COM A MESMA LÓGICA DE FREELAS) -->
+            <div class="bento-card">
+                <div>
+                    <div class="card-header">
+                        <h2>Gastos Valentina</h2>
+                        <button class="btn-action-icon" onclick="openModalValentina()">+</button>
+                    </div>
+                    
+                    <!-- Lista unificada e limpa: subdivisões de blocos de texto externos removidas -->
+                    <div class="grid-itens" id="listaGastosContainer">
+                        <div class="sub-card-item" data-type="valentina" data-subcat="Gastos Fixos" data-color="#b4a8ff" onclick="editarCard(this)" style="border-left-color: #b4a8ff;">
+                            <div class="item-detalhes">
+                                <div class="item-nome">Psicóloga</div>
+                                <div class="item-meta">Gastos Fixos</div>
+                            </div>
+                            <div class="item-preco">R$ 150,00</div>
+                        </div>
+                        <div class="sub-card-item" data-type="valentina" data-subcat="Gastos Fixos" data-color="#b4a8ff" onclick="editarCard(this)" style="border-left-color: #b4a8ff;">
+                            <div class="item-detalhes">
+                                <div class="item-nome">Unimed</div>
+                                <div class="item-meta">Gastos Fixos</div>
+                            </div>
+                            <div class="item-preco">R$ 73,00</div>
+                        </div>
+                        <div class="sub-card-item" data-type="valentina" data-subcat="Gastos Extraordinários" data-color="#ffcc80" onclick="editarCard(this)" style="border-left-color: #ffcc80;">
+                            <div class="item-detalhes">
+                                <div class="item-nome">Aparelho Ortodôntico</div>
+                                <div class="item-meta">Gastos Extraordinários</div>
+                            </div>
+                            <div class="item-preco">R$ 120,00</div>
+                        </div>
+                        <div class="sub-card-item" data-type="valentina" data-subcat="Gastos Extraordinários" data-color="#ffcc80" onclick="editarCard(this)" style="border-left-color: #ffcc80;">
+                            <div class="item-detalhes">
+                                <div class="item-nome">Medicamentos Raio-X</div>
+                                <div class="item-meta">Gastos Extraordinários</div>
+                            </div>
+                            <div class="item-preco">R$ 130,00</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-totalizador">
+                    <span class="total-label">Subtotal Categoria (50%):</span>
+                    <span class="total-valor" style="color: var(--color-fixo); filter: brightness(0.85);">R$ 473,00</span>
+                </div>
+            </div>
+
+            <!-- COLUNA 3: FREELAS -->
+            <div class="bento-card">
+                <div>
+                    <div class="card-header">
+                        <h2>Freelas</h2>
+                        <button class="btn-action-icon" onclick="openModalFreela()">+</button>
+                    </div>
+                    
+                    <div class="grid-itens" id="listaFreelasContainer">
+                        <div class="sub-card-item" data-type="freela" data-cliente="Edenred" data-color="#a2f4a2" onclick="editarCard(this)" style="border-left-color: #a2f4a2;">
+                            <div class="item-detalhes">
+                                <div class="item-nome">Manutenção Mensal Mídia</div>
+                                <div class="item-meta">Edenred</div>
+                            </div>
+                            <div class="item-preco">R$ 350,00</div>
+                        </div>
+                        <div class="sub-card-item" data-type="freela" data-cliente="Edenred" data-color="#a2f4a2" onclick="editarCard(this)" style="border-left-color: #a2f4a2;">
+                            <div class="item-detalhes">
+                                <div class="item-nome">Carrosséis Stories (8)</div>
+                                <div class="item-meta">Edenred</div>
+                            </div>
+                            <div class="item-preco">R$ 320,00</div>
+                        </div>
+                        <div class="sub-card-item" data-type="freela" data-cliente="Catena Padel" data-color="#81d4fa" onclick="editarCard(this)" style="border-left-color: #81d4fa;">
+                            <div class="item-detalhes">
+                                <div class="item-nome">Identidade Torneio</div>
+                                <div class="item-meta">Catena Padel</div>
+                            </div>
+                            <div class="item-preco">R$ 300,00</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-totalizador">
+                    <span class="total-label">Subtotal Freelas:</span>
+                    <span class="total-valor" style="color: #2e7d32;">R$ 970,00</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BARRA GERAL DE AÇÕES -->
+        <div class="barra-botoes">
+            <button class="btn-footer wpp" onclick="copiarExtrato()">
+                <svg width="16" height="16" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397 0 12.008 0c3.202.001 6.212 1.249 8.477 3.514 2.266 2.265 3.513 5.274 3.513 8.477 0 6.616-5.337 11.964-11.948 11.964-2.005-.001-3.973-.504-5.713-1.463L0 24zm6.272-4.048c1.654.982 3.511 1.5 5.465 1.5 5.353 0 9.709-4.357 9.712-9.713.001-2.595-1.006-5.033-2.836-6.864C16.83 3.042 14.391 2.034 11.796 2.034c-5.357 0-9.714 4.357-9.717 9.713-.001 1.969.511 3.893 1.481 5.568L2.531 21.4l4.202-1.103zM17.47 15.31c-.308-.154-1.82-.898-2.101-.998-.281-.1-.487-.154-.689.154-.202.308-.783.998-.96 1.198-.177.202-.353.226-.661.073-.308-.154-1.3-.478-2.475-1.527-.915-.815-1.533-1.825-1.713-2.13-.18-.308-.02-.475.134-.628.14-.137.308-.353.462-.53.154-.177.206-.303.308-.507.102-.202.051-.381-.026-.534-.077-.154-.689-1.66-.944-2.274-.249-.599-.503-.517-.689-.527-.178-.008-.381-.01-.583-.01c-.202 0-.53.077-.807.381-.277.308-1.057 1.034-1.057 2.522 0 1.488 1.083 2.922 1.232 3.125.148.202 2.133 3.256 5.168 4.563.72.311 1.282.496 1.72.636.723.23 1.381.198 1.901.12.58-.087 1.82-.743 2.078-1.46.257-.717.257-1.331.18-1.46-.078-.129-.282-.207-.589-.361z"/></svg>
+                Envio WhatsApp
+            </button>
+            <button class="btn-footer liquidar">Confirmar Pagamento</button>
+        </div>
+    </div>
+
+    <!-- MODAL 1: GASTOS VALENTINA (ATUALIZADO COM SELETOR DE IDENTIDADE SEMPRE ATIVO) -->
+    <div class="modal-overlay" id="modalValentina">
+        <div class="modal-box">
+            <h3 id="titleModalValentina">Nova Entrada Valentina</h3>
+            
+            <div class="form-group">
+                <label for="inputNomeGasto">Nome da Despesa</label>
+                <input type="text" id="inputNomeGasto" placeholder="Ex: Psicóloga, Unimed, Material...">
+            </div>
+
+            <div class="form-group">
+                <label for="selectSubcat">Categoria de Despesa</label>
+                <select id="selectSubcat" onchange="gerenciarEstadoGasto()">
+                    <option value="Gastos Fixos" data-color="#b4a8ff">Gastos Fixos</option>
+                    <option value="Gastos Extraordinários" data-color="#ffcc80">Gastos Extraordinários</option>
+                    <option value="nova">+ Nova Categoria</option>
+                </select>
+            </div>
+
+            <div id="containerNovaSubcat" style="background-color: rgba(0,0,0,0.02); padding: 14px; border-radius: 12px; margin-bottom: 12px;">
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <label for="inputNovaSubcatNome" id="labelSubcatNome">Categoria Selecionada</label>
+                    <input type="text" id="inputNovaSubcatNome" placeholder="Ex: Gastos Escolares...">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Identidade Visual do Ribbon</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="inputNovaSubcatCor" value="#b4a8ff">
+                        <span style="font-size: 12px; color: var(--txt-muted); font-weight: 500;">Escolha a cor do detalhe lateral</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="valorCustoInput">Valor Mão (R$)</label>
+                <input type="number" id="valorCustoInput" placeholder="0,00" step="0.01">
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn-modal cancelar" onclick="closeModal('modalValentina')">Cancelar</button>
+                <button class="btn-modal salvar" onclick="salvarGastosValentina()">Salvar Entrada</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: FREELAS -->
+    <div class="modal-overlay" id="modalFreela">
+        <div class="modal-box">
+            <h3 id="titleModalFreela">Nova Entrada Freela</h3>
+            
+            <div class="form-group">
+                <label for="inputNomeJob">Nome do Job</label>
+                <input type="text" id="inputNomeJob" placeholder="Ex: Manutenção Mensal Mídia">
+            </div>
+
+            <div class="form-group">
+                <label for="selectCliente">Cliente</label>
+                <select id="selectCliente" onchange="gerenciarEstadoCliente()">
+                    <option value="Edenred" data-color="#a2f4a2">Edenred</option>
+                    <option value="Catena Padel" data-color="#81d4fa">Catena Padel</option>
+                    <option value="novo">+ Novo Cliente</option>
+                </select>
+            </div>
+
+            <div id="containerNovoCliente" style="background-color: rgba(0,0,0,0.02); padding: 14px; border-radius: 12px; margin-bottom: 12px;">
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <label for="inputNovoClienteNome" id="labelNomeCliente">Cliente Selecionado</label>
+                    <input type="text" id="inputNovoClienteNome" placeholder="Ex: Catena Padel, Nike...">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Identidade Visual do Ribbon</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="inputNovoClienteCor" value="#a2f4a2">
+                        <span style="font-size: 12px; color: var(--txt-muted); font-weight: 500;">Escolha a cor do detalhe lateral</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="inputValorFreela">Valor Bruto (R$)</label>
+                <input type="number" id="inputValorFreela" placeholder="0,00" step="0.01">
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn-modal cancelar" onclick="closeModal('modalFreela')">Cancelar</button>
+                <button class="btn-modal salvar" onclick="salvarFreela()">Salvar Entrada</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cardSendoEditado = null; 
+
+        function toggleAnoDropdown() { document.getElementById('dropdownAno').classList.toggle('active'); }
+        function selecionarAno(ano, elementoClicado) {
+            document.getElementById('anoSelecionado').innerText = ano;
+            document.getElementById('dropdownAno').classList.remove('active');
+            const options = document.querySelectorAll('.ano-option');
+            options.forEach(opt => opt.classList.remove('active'));
+            elementoClicado.classList.add('active');
+        }
+
+        const slider = document.getElementById('timelineSlider');
+        const setaEsq = document.getElementById('setaEsq');
+        const setaDir = document.getElementById('setaDir');
+
+        function verificarSetas() {
+            const temCorteHorizontal = slider.scrollWidth > (slider.clientWidth + 5);
+            if (temCorteHorizontal) {
+                setaEsq.style.display = 'flex'; setaDir.style.display = 'flex';
+            } else {
+                setaEsq.style.display = 'none'; setaDir.style.display = 'none';
+            }
+        }
+
+        function scrollTimeline(val) { slider.scrollLeft += val; }
+        window.addEventListener('load', verificarSetas);
+        window.addEventListener('resize', verificarSetas);
+        setTimeout(verificarSetas, 150);
+
+        window.addEventListener('click', function(e) {
+            if (!document.getElementById('btnAno').contains(e.target)) {
+                document.getElementById('dropdownAno').classList.remove('active');
+            }
+        });
+
+        // CHAVEADORES DE CRIAÇÃO (CREATE)
+        function openModalValentina() { 
+            cardSendoEditado = null;
+            document.getElementById('titleModalValentina').innerText = "Nova Entrada Valentina";
+            document.getElementById('inputNomeGasto').value = '';
+            document.getElementById('valorCustoInput').value = '';
+            document.getElementById('selectSubcat').value = 'Gastos Fixos';
+            gerenciarEstadoGasto();
+            document.getElementById('modalValentina').classList.add('active'); 
+        }
+
+        function openModalFreela() { 
+            cardSendoEditado = null;
+            document.getElementById('titleModalFreela').innerText = "Nova Entrada Freela";
+            document.getElementById('inputNomeJob').value = '';
+            document.getElementById('inputValorFreela').value = '';
+            document.getElementById('selectCliente').value = 'Edenred';
+            gerenciarEstadoCliente();
+            document.getElementById('modalFreela').classList.add('active'); 
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        // GERENCIADORES DE ESTADO SÉRIES ESPELHADAS
+        function gerenciarEstadoGasto() {
+            const select = document.getElementById('selectSubcat');
+            const inputNomeNovo = document.getElementById('inputNovaSubcatNome');
+            const labelNome = document.getElementById('labelSubcatNome');
+            const pickerCor = document.getElementById('inputNovaSubcatCor');
+
+            if (select.value === 'nova') {
+                labelNome.innerText = "Nome da Nova Categoria";
+                inputNomeNovo.disabled = false; inputNomeNovo.value = '';
+                inputNomeNovo.placeholder = "Ex: Gastos Escolares...";
+                pickerCor.value = "#ff8a80"; 
+            } else {
+                labelNome.innerText = "Categoria Selecionada";
+                inputNomeNovo.disabled = true; inputNomeNovo.value = select.value;
+                pickerCor.value = select.options[select.selectedIndex].getAttribute('data-color');
+            }
+        }
+
+        function gerenciarEstadoCliente() {
+            const select = document.getElementById('selectCliente');
+            const inputNomeNovo = document.getElementById('inputNovoClienteNome');
+            const labelNome = document.getElementById('labelNomeCliente');
+            const pickerCor = document.getElementById('inputNovoClienteCor');
+
+            if (select.value === 'novo') {
+                labelNome.innerText = "Nome do Novo Cliente";
+                inputNomeNovo.disabled = false; inputNomeNovo.value = '';
+                inputNomeNovo.placeholder = "Ex: Catena Padel, Nike...";
+                pickerCor.value = "#b4a8ff"; 
+            } else {
+                labelNome.innerText = "Cliente Selecionado";
+                inputNomeNovo.disabled = true; inputNomeNovo.value = select.value;
+                pickerCor.value = select.options[select.selectedIndex].getAttribute('data-color');
+            }
+        }
+
+        // CHAVEADOR DE EDIÇÃO (UPDATE)
+        function editarCard(elemento) {
+            cardSendoEditado = elemento;
+            const tipo = elemento.getAttribute('data-type');
+            const nome = elemento.querySelector('.item-nome').innerText;
+            const valor = parseFloat(elemento.querySelector('.item-preco').innerText.replace('R$ ', '').replace('.', '').replace(',', '.'));
+
+            if (tipo === 'freela') {
+                document.getElementById('titleModalFreela').innerText = "Editar Entrada Freela";
+                document.getElementById('inputNomeJob').value = nome;
+                document.getElementById('inputValorFreela').value = valor;
+                
+                const cliente = elemento.getAttribute('data-cliente');
+                const select = document.getElementById('selectCliente');
+                
+                if (!select.querySelector(`option[value="${cliente}"]`)) {
+                    const opt = document.createElement('option');
+                    opt.value = cliente; opt.text = cliente;
+                    opt.setAttribute('data-color', elemento.getAttribute('data-color'));
+                    select.add(opt, select.options[select.length - 1]);
+                }
+                select.value = cliente;
+                gerenciarEstadoCliente();
+                document.getElementById('modalFreela').classList.add('active');
+            } else {
+                document.getElementById('titleModalValentina').innerText = "Editar Entrada Valentina";
+                document.getElementById('inputNomeGasto').value = nome;
+                document.getElementById('valorCustoInput').value = valor;
+
+                const subcat = elemento.getAttribute('data-subcat');
+                const selectSub = document.getElementById('selectSubcat');
+
+                if (!selectSub.querySelector(`option[value="${subcat}"]`)) {
+                    const opt = document.createElement('option');
+                    opt.value = subcat; opt.text = subcat;
+                    opt.setAttribute('data-color', elemento.getAttribute('data-color'));
+                    selectSub.add(opt, selectSub.options[selectSub.length - 1]);
+                }
+                selectSub.value = subcat;
+                gerenciarEstadoGasto();
+                document.getElementById('modalValentina').classList.add('active');
+            }
+        }
+
+        // SALVAMENTO GASTOS VALENTINA
+        function salvarGastosValentina() {
+            const nomeGasto = document.getElementById('inputNomeGasto').value || "Despesa";
+            const selectSub = document.getElementById('selectSubcat');
+            let nomeSub = selectSub.value;
+            let corSub = document.getElementById('inputNovaSubcatCor').value;
+            const valorMao = parseFloat(document.getElementById('valorCustoInput').value || 0).toFixed(2);
+            const valorFormatado = `R$ ${valorMao.replace('.', ',')}`;
+
+            if (nomeSub === 'nova') {
+                nomeSub = document.getElementById('inputNovaSubcatNome').value || "Nova Categoria";
+                const opt = document.createElement('option');
+                opt.value = nomeSub; opt.text = nomeSub;
+                opt.setAttribute('data-color', corSub);
+                selectSub.add(opt, selectSub.options[selectSub.length - 1]);
+                selectSub.value = nomeSub;
+            } else {
+                selectSub.options[selectSub.selectedIndex].setAttribute('data-color', corSub);
+            }
+
+            if (cardSendoEditado) {
+                cardSendoEditado.querySelector('.item-nome').innerText = nomeGasto;
+                cardSendoEditado.querySelector('.item-meta').innerText = nomeSub;
+                cardSendoEditado.querySelector('.item-preco').innerText = valorFormatado;
+                cardSendoEditado.style.borderLeftColor = corSub;
+                cardSendoEditado.setAttribute('data-subcat', nomeSub);
+                cardSendoEditado.setAttribute('data-color', corSub);
+            } else {
+                const novoHtml = `
+                    <div class="sub-card-item" data-type="valentina" data-subcat="${nomeSub}" data-color="${corSub}" onclick="editarCard(this)" style="border-left-color: ${corSub};">
+                        <div class="item-detalhes">
+                            <div class="item-nome">${nomeGasto}</div>
+                            <div class="item-meta">${nomeSub}</div>
+                        </div>
+                        <div class="item-preco">${valorFormatado}</div>
+                    </div>`;
+                document.getElementById('listaGastosContainer').insertAdjacentHTML('beforeend', novoHtml);
+            }
+            closeModal('modalValentina');
+        }
+
+        // SALVAMENTO FREELAS
+        function salvarFreela() {
+            const nomeJob = document.getElementById('inputNomeJob').value || "Job";
+            const selectCliente = document.getElementById('selectCliente');
+            let nomeCliente = selectCliente.value;
+            let corCliente = document.getElementById('inputNovoClienteCor').value;
+            const valorBruto = parseFloat(document.getElementById('inputValorFreela').value || 0).toFixed(2);
+            const valorFormatado = `R$ ${valorBruto.replace('.', ',')}`;
+
+            if (nomeCliente === 'novo') {
+                nomeCliente = document.getElementById('inputNovoClienteNome').value || "Novo Cliente";
+                const opt = document.createElement('option');
+                opt.value = nomeCliente; opt.text = nomeCliente;
+                opt.setAttribute('data-color', corCliente);
+                selectCliente.add(opt, selectCliente.options[selectCliente.length - 1]);
+                selectCliente.value = nomeCliente;
+            } else {
+                selectCliente.options[selectCliente.selectedIndex].setAttribute('data-color', corCliente);
+            }
+
+            if (cardSendoEditado) {
+                cardSendoEditado.querySelector('.item-nome').innerText = nomeJob;
+                cardSendoEditado.querySelector('.item-meta').innerText = nomeCliente;
+                cardSendoEditado.querySelector('.item-preco').innerText = valorFormatado;
+                cardSendoEditado.style.borderLeftColor = corCliente;
+                cardSendoEditado.setAttribute('data-cliente', nomeCliente);
+                cardSendoEditado.setAttribute('data-color', corCliente);
+            } else {
+                const novoHtml = `
+                    <div class="sub-card-item" data-type="freela" data-cliente="${nomeCliente}" data-color="${corCliente}" onclick="editarCard(this)" style="border-left-color: ${corCliente};">
+                        <div class="item-detalhes">
+                            <div class="item-nome">${nomeJob}</div>
+                            <div class="item-meta">${nomeCliente}</div>
+                        </div>
+                        <div class="item-preco">${valorFormatado}</div>
+                    </div>`;
+                document.getElementById('listaFreelasContainer').insertAdjacentHTML('beforeend', novoHtml);
+            }
+            closeModal('modalFreela');
+        }
+
+        function copiarExtrato() { alert("Extrato copiado!"); }
+    </script>
+</body>
+</html>
