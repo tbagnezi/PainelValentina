@@ -250,6 +250,40 @@
 
         .barra-preenchimento-h.v-fixo { background-color: var(--color-fixo); }
         .barra-preenchimento-h.v-extra { background-color: var(--color-extra); }
+
+        /* GRUPOS DE BARRAS (separação Valentina x Freela) */
+        .grupo-barras { display: flex; flex-direction: column; gap: 16px; }
+        .grupo-label {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #6e756f;
+        }
+        .divisor-grupos { height: 1px; background-color: rgba(255, 255, 255, 0.08); margin: 6px 0; }
+
+        .tag-formula {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 9px;
+            border-radius: 20px;
+            margin-left: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            vertical-align: middle;
+        }
+        .tag-formula.soma { background-color: rgba(76, 175, 80, 0.12); color: #2e7d32; }
+        .tag-formula.subtrai { background-color: rgba(230, 126, 126, 0.15); color: #c0392b; }
+
+        .color-picker-container input[type="text"] {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: var(--radius-sub);
+            border: 1px solid #d5dad4;
+            background-color: var(--bg-white);
+            font-size: 14px;
+            outline: none;
+        }
         
         /* COLUNAS BENTO */
         .bento-card { background-color: var(--bg-card-main); border-radius: var(--radius-main); padding: 32px; display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
@@ -292,6 +326,7 @@
         .btn-footer.wpp { background-color: var(--bg-white); color: #111111; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .btn-footer.wpp svg { fill: #25D366; } 
         .btn-footer.liquidar { background-color: var(--txt-dark); color: var(--txt-light); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .btn-footer.liquidar.confirmado { background-color: #2e7d32; box-shadow: 0 4px 12px rgba(46, 125, 50, 0.25); }
 
         /* MODAIS STRUCT */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; z-index: 1000; }
@@ -331,9 +366,41 @@
         .btn-modal { padding: 12px 20px; border-radius: var(--radius-pill); border: none; font-weight: 600; cursor: pointer; font-size: 14px; outline: none; }
         .btn-modal.salvar { background-color: var(--txt-dark); color: var(--txt-light); }
         .btn-modal.cancelar { background-color: transparent; border: 1px solid #d5dad4; }
+        .btn-modal.excluir { background-color: transparent; color: #c0392b; border: 1px solid rgba(192, 57, 43, 0.3); margin-right: auto; }
+        .btn-modal.excluir:hover { background-color: rgba(192, 57, 43, 0.08); }
+
+        /* LOADING / CONFIG */
+        .loading-overlay {
+            position: fixed; inset: 0; background: rgba(226, 231, 225, 0.85);
+            display: none; align-items: center; justify-content: center; z-index: 999;
+        }
+        .spinner {
+            width: 38px; height: 38px; border-radius: 50%;
+            border: 4px solid rgba(0,0,0,0.1); border-top-color: var(--txt-dark);
+            animation: girar 0.8s linear infinite;
+        }
+        @keyframes girar { to { transform: rotate(360deg); } }
+
+        .aviso-config {
+            display: none;
+            max-width: 1280px; margin: 0 auto 20px auto;
+            background-color: #fff3cd; color: #6b5500; border: 1px solid #ffe8a1;
+            padding: 14px 18px; border-radius: 14px; font-size: 14px; line-height: 1.5;
+        }
+        .aviso-config code { background: rgba(0,0,0,0.06); padding: 2px 6px; border-radius: 6px; }
+
+        .estado-vazio { font-size: 13px; color: var(--txt-muted); padding: 12px 4px; }
     </style>
 </head>
 <body>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="aviso-config" id="avisoConfig">
+        ⚠️ Configure a URL da API do Google Apps Script na constante <code>API_URL</code>, no topo do <code>&lt;script&gt;</code>, para os dados carregarem da planilha.
+    </div>
 
     <div class="container-app">
         
@@ -353,18 +420,18 @@
             <button class="seta-navegacao" id="setaEsq" onclick="scrollTimeline(-150)">‹</button>
             <div class="slider-meses-container" id="sliderContainer">
                 <nav class="slider-meses" id="timelineSlider">
-                    <button class="aba-mes pago">Jan</button>
-                    <button class="aba-mes aberto">Fev</button> 
-                    <button class="aba-mes pago">Mar</button>
-                    <button class="aba-mes pago">Abr</button>
-                    <button class="aba-mes pago">Mai</button>
-                    <button class="aba-mes atual">Jun</button> 
-                    <button class="aba-mes futuro">Jul</button>
-                    <button class="aba-mes futuro">Ago</button>
-                    <button class="aba-mes futuro">Set</button>
-                    <button class="aba-mes futuro">Out</button>
-                    <button class="aba-mes futuro">Nov</button>
-                    <button class="aba-mes futuro">Dez</button>
+                    <button class="aba-mes" data-mes="0">Jan</button>
+                    <button class="aba-mes" data-mes="1">Fev</button> 
+                    <button class="aba-mes" data-mes="2">Mar</button>
+                    <button class="aba-mes" data-mes="3">Abr</button>
+                    <button class="aba-mes" data-mes="4">Mai</button>
+                    <button class="aba-mes" data-mes="5">Jun</button> 
+                    <button class="aba-mes" data-mes="6">Jul</button>
+                    <button class="aba-mes" data-mes="7">Ago</button>
+                    <button class="aba-mes" data-mes="8">Set</button>
+                    <button class="aba-mes" data-mes="9">Out</button>
+                    <button class="aba-mes" data-mes="10">Nov</button>
+                    <button class="aba-mes" data-mes="11">Dez</button>
                 </nav>
             </div>
             <button class="seta-navegacao" id="setaDir" onclick="scrollTimeline(150)">›</button>
@@ -381,120 +448,74 @@
                     </div>
                     <div class="balanco-resultado" style="margin-top: 0; border: none; padding-top: 0; margin-bottom: 24px;">
                         <p class="balanco-label">Total Geral a Receber</p>
-                        <div class="balanco-valor"><span>R$ 1.443,00</span></div>
+                        <div class="balanco-valor"><span id="totalGeral">R$ 0,00</span></div>
                     </div>
                 </div>
                 
                 <div class="container-grafico-horizontal" id="graficoBarrasContainer">
-                    <div class="linha-grafico" id="graph-v-fixo">
-                        <div class="linha-meta-info"><span>Gastos Fixos</span></div>
-                        <div class="barra-horizontal-wrapper">
-                            <div class="barra-preenchimento-h v-fixo" style="width: 47%;">47%</div>
+                    <div class="grupo-barras" id="grupoBarrasValentina">
+                        <div class="grupo-label">Painel Valentina</div>
+                        <div class="linha-grafico" id="graph-recorrentes">
+                            <div class="linha-meta-info"><span></span></div>
+                            <div class="barra-horizontal-wrapper">
+                                <div class="barra-preenchimento-h" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <div class="linha-grafico" id="graph-extraordinarios">
+                            <div class="linha-meta-info"><span></span></div>
+                            <div class="barra-horizontal-wrapper">
+                                <div class="barra-preenchimento-h" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <div class="linha-grafico" id="graph-creditos">
+                            <div class="linha-meta-info"><span></span></div>
+                            <div class="barra-horizontal-wrapper">
+                                <div class="barra-preenchimento-h" style="width: 0%;"></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="linha-grafico" id="graph-v-extra">
-                        <div class="linha-meta-info"><span>Gastos Extraordinários</span></div>
-                        <div class="barra-horizontal-wrapper">
-                            <div class="barra-preenchimento-h v-extra" style="width: 53%;">53%</div>
-                        </div>
-                    </div>
-                    
-                    <div class="linha-grafico" id="graph-edenred">
-                        <div class="linha-meta-info"><span id="lbl-graph-edenred">Edenred</span></div>
-                        <div class="barra-horizontal-wrapper">
-                            <div class="barra-preenchimento-h" id="bar-graph-edenred" style="width: 69%; background-color: #a2f4a2;">69%</div>
-                        </div>
-                    </div>
-                    <div class="linha-grafico" id="graph-catena">
-                        <div class="linha-meta-info"><span id="lbl-graph-catena">Catena Padel</span></div>
-                        <div class="barra-horizontal-wrapper">
-                            <div class="barra-preenchimento-h" id="bar-graph-catena" style="width: 31%; background-color: #81d4fa;">31%</div>
-                        </div>
+
+                    <div class="divisor-grupos" id="divisorGrupos"></div>
+
+                    <div class="grupo-barras" id="grupoBarrasFreela">
+                        <div class="grupo-label">Painel Freela</div>
+                        <div id="listaBarrasFreela"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- COLUNA 2: GASTOS VALENTINA (ALINHADO COM A MESMA LÓGICA DE FREELAS) -->
+            <!-- COLUNA 2: PAINEL VALENTINA -->
             <div class="bento-card">
                 <div>
                     <div class="card-header">
-                        <h2>Gastos Valentina</h2>
-                        <button class="btn-action-icon" onclick="openModalValentina()">+</button>
+                        <h2>Painel Valentina</h2>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn-action-icon" onclick="openModalCategoriasValentina()" title="Editar categorias" style="font-size: 15px;">⚙</button>
+                            <button class="btn-action-icon" onclick="openModalValentina()">+</button>
+                        </div>
                     </div>
                     
-                    <!-- Lista unificada e limpa: subdivisões de blocos de texto externos removidas -->
-                    <div class="grid-itens" id="listaGastosContainer">
-                        <div class="sub-card-item" data-type="valentina" data-subcat="Gastos Fixos" data-color="#b4a8ff" onclick="editarCard(this)" style="border-left-color: #b4a8ff;">
-                            <div class="item-detalhes">
-                                <div class="item-nome">Psicóloga</div>
-                                <div class="item-meta">Gastos Fixos</div>
-                            </div>
-                            <div class="item-preco">R$ 150,00</div>
-                        </div>
-                        <div class="sub-card-item" data-type="valentina" data-subcat="Gastos Fixos" data-color="#b4a8ff" onclick="editarCard(this)" style="border-left-color: #b4a8ff;">
-                            <div class="item-detalhes">
-                                <div class="item-nome">Unimed</div>
-                                <div class="item-meta">Gastos Fixos</div>
-                            </div>
-                            <div class="item-preco">R$ 73,00</div>
-                        </div>
-                        <div class="sub-card-item" data-type="valentina" data-subcat="Gastos Extraordinários" data-color="#ffcc80" onclick="editarCard(this)" style="border-left-color: #ffcc80;">
-                            <div class="item-detalhes">
-                                <div class="item-nome">Aparelho Ortodôntico</div>
-                                <div class="item-meta">Gastos Extraordinários</div>
-                            </div>
-                            <div class="item-preco">R$ 120,00</div>
-                        </div>
-                        <div class="sub-card-item" data-type="valentina" data-subcat="Gastos Extraordinários" data-color="#ffcc80" onclick="editarCard(this)" style="border-left-color: #ffcc80;">
-                            <div class="item-detalhes">
-                                <div class="item-nome">Medicamentos Raio-X</div>
-                                <div class="item-meta">Gastos Extraordinários</div>
-                            </div>
-                            <div class="item-preco">R$ 130,00</div>
-                        </div>
-                    </div>
+                    <div class="grid-itens" id="listaGastosContainer"></div>
                 </div>
                 <div class="card-totalizador">
-                    <span class="total-label">Subtotal Categoria (50%):</span>
-                    <span class="total-valor" style="color: var(--color-fixo); filter: brightness(0.85);">R$ 473,00</span>
+                    <span class="total-label">Subtotal:</span>
+                    <span class="total-valor" id="totalValentina" style="color: var(--color-fixo); filter: brightness(0.85);">R$ 0,00</span>
                 </div>
             </div>
 
-            <!-- COLUNA 3: FREELAS -->
+            <!-- COLUNA 3: PAINEL FREELA -->
             <div class="bento-card">
                 <div>
                     <div class="card-header">
-                        <h2>Freelas</h2>
+                        <h2>Painel Freela</h2>
                         <button class="btn-action-icon" onclick="openModalFreela()">+</button>
                     </div>
                     
-                    <div class="grid-itens" id="listaFreelasContainer">
-                        <div class="sub-card-item" data-type="freela" data-cliente="Edenred" data-color="#a2f4a2" onclick="editarCard(this)" style="border-left-color: #a2f4a2;">
-                            <div class="item-detalhes">
-                                <div class="item-nome">Manutenção Mensal Mídia</div>
-                                <div class="item-meta">Edenred</div>
-                            </div>
-                            <div class="item-preco">R$ 350,00</div>
-                        </div>
-                        <div class="sub-card-item" data-type="freela" data-cliente="Edenred" data-color="#a2f4a2" onclick="editarCard(this)" style="border-left-color: #a2f4a2;">
-                            <div class="item-detalhes">
-                                <div class="item-nome">Carrosséis Stories (8)</div>
-                                <div class="item-meta">Edenred</div>
-                            </div>
-                            <div class="item-preco">R$ 320,00</div>
-                        </div>
-                        <div class="sub-card-item" data-type="freela" data-cliente="Catena Padel" data-color="#81d4fa" onclick="editarCard(this)" style="border-left-color: #81d4fa;">
-                            <div class="item-detalhes">
-                                <div class="item-nome">Identidade Torneio</div>
-                                <div class="item-meta">Catena Padel</div>
-                            </div>
-                            <div class="item-preco">R$ 300,00</div>
-                        </div>
-                    </div>
+                    <div class="grid-itens" id="listaFreelasContainer"></div>
                 </div>
                 <div class="card-totalizador">
-                    <span class="total-label">Subtotal Freelas:</span>
-                    <span class="total-valor" style="color: #2e7d32;">R$ 970,00</span>
+                    <span class="total-label">Subtotal:</span>
+                    <span class="total-valor" id="totalFreela" style="color: #2e7d32;">R$ 0,00</span>
                 </div>
             </div>
 
@@ -502,15 +523,15 @@
 
         <!-- BARRA GERAL DE AÇÕES -->
         <div class="barra-botoes">
-            <button class="btn-footer wpp" onclick="copiarExtrato()">
+            <button class="btn-footer wpp" onclick="enviarWhatsapp()">
                 <svg width="16" height="16" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397 0 12.008 0c3.202.001 6.212 1.249 8.477 3.514 2.266 2.265 3.513 5.274 3.513 8.477 0 6.616-5.337 11.964-11.948 11.964-2.005-.001-3.973-.504-5.713-1.463L0 24zm6.272-4.048c1.654.982 3.511 1.5 5.465 1.5 5.353 0 9.709-4.357 9.712-9.713.001-2.595-1.006-5.033-2.836-6.864C16.83 3.042 14.391 2.034 11.796 2.034c-5.357 0-9.714 4.357-9.717 9.713-.001 1.969.511 3.893 1.481 5.568L2.531 21.4l4.202-1.103zM17.47 15.31c-.308-.154-1.82-.898-2.101-.998-.281-.1-.487-.154-.689.154-.202.308-.783.998-.96 1.198-.177.202-.353.226-.661.073-.308-.154-1.3-.478-2.475-1.527-.915-.815-1.533-1.825-1.713-2.13-.18-.308-.02-.475.134-.628.14-.137.308-.353.462-.53.154-.177.206-.303.308-.507.102-.202.051-.381-.026-.534-.077-.154-.689-1.66-.944-2.274-.249-.599-.503-.517-.689-.527-.178-.008-.381-.01-.583-.01c-.202 0-.53.077-.807.381-.277.308-1.057 1.034-1.057 2.522 0 1.488 1.083 2.922 1.232 3.125.148.202 2.133 3.256 5.168 4.563.72.311 1.282.496 1.72.636.723.23 1.381.198 1.901.12.58-.087 1.82-.743 2.078-1.46.257-.717.257-1.331.18-1.46-.078-.129-.282-.207-.589-.361z"/></svg>
                 Envio WhatsApp
             </button>
-            <button class="btn-footer liquidar">Confirmar Pagamento</button>
+            <button class="btn-footer liquidar" id="btnConfirmarPagamento" onclick="toggleConfirmacaoPagamento()">Confirmar Pagamento</button>
         </div>
     </div>
 
-    <!-- MODAL 1: GASTOS VALENTINA (ATUALIZADO COM SELETOR DE IDENTIDADE SEMPRE ATIVO) -->
+    <!-- MODAL 1: NOVA/EDITAR ENTRADA VALENTINA -->
     <div class="modal-overlay" id="modalValentina">
         <div class="modal-box">
             <h3 id="titleModalValentina">Nova Entrada Valentina</h3>
@@ -521,36 +542,58 @@
             </div>
 
             <div class="form-group">
-                <label for="selectSubcat">Categoria de Despesa</label>
-                <select id="selectSubcat" onchange="gerenciarEstadoGasto()">
-                    <option value="Gastos Fixos" data-color="#b4a8ff">Gastos Fixos</option>
-                    <option value="Gastos Extraordinários" data-color="#ffcc80">Gastos Extraordinários</option>
-                    <option value="nova">+ Nova Categoria</option>
-                </select>
-            </div>
-
-            <div id="containerNovaSubcat" style="background-color: rgba(0,0,0,0.02); padding: 14px; border-radius: 12px; margin-bottom: 12px;">
-                <div class="form-group" style="margin-bottom: 10px;">
-                    <label for="inputNovaSubcatNome" id="labelSubcatNome">Categoria Selecionada</label>
-                    <input type="text" id="inputNovaSubcatNome" placeholder="Ex: Gastos Escolares...">
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label>Identidade Visual do Ribbon</label>
-                    <div class="color-picker-container">
-                        <input type="color" id="inputNovaSubcatCor" value="#b4a8ff">
-                        <span style="font-size: 12px; color: var(--txt-muted); font-weight: 500;">Escolha a cor do detalhe lateral</span>
-                    </div>
-                </div>
+                <label for="selectSubcat">Categoria</label>
+                <select id="selectSubcat"></select>
             </div>
 
             <div class="form-group">
-                <label for="valorCustoInput">Valor Mão (R$)</label>
+                <label for="valorCustoInput">Valor (R$)</label>
                 <input type="number" id="valorCustoInput" placeholder="0,00" step="0.01">
             </div>
             
             <div class="modal-actions">
+                <button class="btn-modal excluir" id="btnExcluirValentina" style="display: none;" onclick="excluirEntrada('modalValentina')">Excluir</button>
                 <button class="btn-modal cancelar" onclick="closeModal('modalValentina')">Cancelar</button>
                 <button class="btn-modal salvar" onclick="salvarGastosValentina()">Salvar Entrada</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 1B: EDITAR CATEGORIAS FIXAS DO PAINEL VALENTINA -->
+    <div class="modal-overlay" id="modalCategoriasValentina">
+        <div class="modal-box">
+            <h3>Editar Categorias · Painel Valentina</h3>
+            <p style="font-size: 13px; color: var(--txt-muted); margin-bottom: 18px; line-height: 1.4;">
+                Você pode renomear e trocar a cor de cada categoria. A forma como ela entra no cálculo é fixa e não muda.
+            </p>
+
+            <div class="form-group">
+                <label>Gastos Recorrentes <span class="tag-formula soma">+ soma</span></label>
+                <div class="color-picker-container">
+                    <input type="color" id="corRecorrentes" value="#b4a8ff">
+                    <input type="text" id="nomeRecorrentes" value="Gastos Recorrentes">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Gastos Extraordinários <span class="tag-formula soma">+ soma</span></label>
+                <div class="color-picker-container">
+                    <input type="color" id="corExtraordinarios" value="#ffcc80">
+                    <input type="text" id="nomeExtraordinarios" value="Gastos Extraordinários">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Créditos Ana <span class="tag-formula subtrai">− subtrai</span></label>
+                <div class="color-picker-container">
+                    <input type="color" id="corCreditos" value="#86cf86">
+                    <input type="text" id="nomeCreditos" value="Créditos Ana">
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-modal cancelar" onclick="closeModal('modalCategoriasValentina')">Cancelar</button>
+                <button class="btn-modal salvar" onclick="salvarCategoriasValentina()">Salvar</button>
             </div>
         </div>
     </div>
@@ -567,11 +610,7 @@
 
             <div class="form-group">
                 <label for="selectCliente">Cliente</label>
-                <select id="selectCliente" onchange="gerenciarEstadoCliente()">
-                    <option value="Edenred" data-color="#a2f4a2">Edenred</option>
-                    <option value="Catena Padel" data-color="#81d4fa">Catena Padel</option>
-                    <option value="novo">+ Novo Cliente</option>
-                </select>
+                <select id="selectCliente" onchange="gerenciarEstadoCliente()"></select>
             </div>
 
             <div id="containerNovoCliente" style="background-color: rgba(0,0,0,0.02); padding: 14px; border-radius: 12px; margin-bottom: 12px;">
@@ -594,6 +633,7 @@
             </div>
             
             <div class="modal-actions">
+                <button class="btn-modal excluir" id="btnExcluirFreela" style="display: none;" onclick="excluirEntrada('modalFreela')">Excluir</button>
                 <button class="btn-modal cancelar" onclick="closeModal('modalFreela')">Cancelar</button>
                 <button class="btn-modal salvar" onclick="salvarFreela()">Salvar Entrada</button>
             </div>
@@ -601,15 +641,110 @@
     </div>
 
     <script>
-        let cardSendoEditado = null; 
+        // ===================== CONFIGURAÇÃO =====================
+        // Depois de publicar o Apps Script como Web App, cole a URL gerada aqui (algo como
+        // https://script.google.com/macros/s/AKfycb..../exec)
+        const API_URL = 'COLE_AQUI_A_URL_DO_SEU_APPS_SCRIPT';
 
+        const NUMERO_WHATSAPP_ANA = '555496441218';
+        const NOMES_MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+        // ===================== ESTADO GLOBAL (espelho dos dados da planilha) =====================
+        let state = {
+            valentina: [],
+            freela: [],
+            categorias: {
+                recorrentes: { label: 'Gastos Recorrentes', color: '#b4a8ff' },
+                extraordinarios: { label: 'Gastos Extraordinários', color: '#ffcc80' },
+                creditos: { label: 'Créditos Ana', color: '#86cf86' }
+            },
+            pagamentos: {}
+        };
+
+        let cardSendoEditadoId = null;
+        let cardSendoEditadoTipo = null;
+        let anoSelecionado = 2026;
+
+        // ===================== UTILITÁRIOS =====================
+        function formatValor(num) {
+            const neg = num < 0;
+            num = Math.abs(num);
+            const partes = num.toFixed(2).split('.');
+            partes[0] = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            return (neg ? '-' : '') + 'R$ ' + partes[0] + ',' + partes[1];
+        }
+
+        function escapeHtml(txt) {
+            return String(txt == null ? '' : txt).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+        }
+
+        function mostrarCarregando(visivel) {
+            document.getElementById('loadingOverlay').style.display = visivel ? 'flex' : 'none';
+        }
+
+        // ===================== COMUNICAÇÃO COM A API (GOOGLE SHEETS VIA APPS SCRIPT) =====================
+        async function carregarDados() {
+            if (!API_URL || API_URL.indexOf('COLE_AQUI') !== -1) {
+                document.getElementById('avisoConfig').style.display = 'block';
+                renderTudo();
+                return;
+            }
+            mostrarCarregando(true);
+            try {
+                const resp = await fetch(API_URL);
+                const dados = await resp.json();
+                aplicarDataset(dados);
+            } catch (e) {
+                console.error(e);
+                alert('Não foi possível carregar os dados. Verifique sua conexão com a internet.');
+            }
+            mostrarCarregando(false);
+        }
+
+        async function enviarMutacao(payload) {
+            if (!API_URL || API_URL.indexOf('COLE_AQUI') !== -1) {
+                alert('Configure a API_URL antes de salvar dados (veja o aviso no topo da página).');
+                return;
+            }
+            mostrarCarregando(true);
+            try {
+                const resp = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+                const dados = await resp.json();
+                aplicarDataset(dados);
+            } catch (e) {
+                console.error(e);
+                alert('Erro ao salvar. Verifique sua conexão e tente novamente.');
+            }
+            mostrarCarregando(false);
+        }
+
+        function aplicarDataset(dados) {
+            state.valentina = (dados.valentina || []).map(i => ({ ...i, valor: Number(i.valor) }));
+            state.freela = (dados.freela || []).map(i => ({ ...i, valor: Number(i.valor) }));
+            if (dados.categorias && Object.keys(dados.categorias).length) state.categorias = dados.categorias;
+            state.pagamentos = dados.pagamentos || {};
+            renderTudo();
+        }
+
+        function renderTudo() {
+            renderValentinaItens();
+            renderFreelaItens();
+            renderSelectCliente();
+            recalcularValentina();
+            recalcularFreela();
+            atualizarTimeline();
+            atualizarBotaoConfirmar();
+        }
+
+        // ===================== TIMELINE (ANO / MÊS) =====================
         function toggleAnoDropdown() { document.getElementById('dropdownAno').classList.toggle('active'); }
         function selecionarAno(ano, elementoClicado) {
+            anoSelecionado = ano;
             document.getElementById('anoSelecionado').innerText = ano;
             document.getElementById('dropdownAno').classList.remove('active');
-            const options = document.querySelectorAll('.ano-option');
-            options.forEach(opt => opt.classList.remove('active'));
+            document.querySelectorAll('.ano-option').forEach(opt => opt.classList.remove('active'));
             elementoClicado.classList.add('active');
+            atualizarTimeline();
         }
 
         const slider = document.getElementById('timelineSlider');
@@ -618,64 +753,203 @@
 
         function verificarSetas() {
             const temCorteHorizontal = slider.scrollWidth > (slider.clientWidth + 5);
-            if (temCorteHorizontal) {
-                setaEsq.style.display = 'flex'; setaDir.style.display = 'flex';
-            } else {
-                setaEsq.style.display = 'none'; setaDir.style.display = 'none';
-            }
+            setaEsq.style.display = temCorteHorizontal ? 'flex' : 'none';
+            setaDir.style.display = temCorteHorizontal ? 'flex' : 'none';
+        }
+        function scrollTimeline(val) { slider.scrollLeft += val; }
+
+        function atualizarTimeline() {
+            const hoje = new Date();
+            const anoReal = hoje.getFullYear();
+            const mesReal = hoje.getMonth();
+            let botaoAtual = null;
+
+            document.querySelectorAll('.aba-mes').forEach(btn => {
+                const idx = parseInt(btn.getAttribute('data-mes'), 10);
+                btn.classList.remove('pago', 'aberto', 'atual', 'futuro');
+                let status;
+                if (anoSelecionado === anoReal && idx === mesReal) {
+                    status = 'atual';
+                    botaoAtual = btn;
+                } else {
+                    const ehPassado = anoSelecionado < anoReal || (anoSelecionado === anoReal && idx < mesReal);
+                    status = ehPassado ? (state.pagamentos[`${anoSelecionado}-${idx}`] ? 'pago' : 'aberto') : 'futuro';
+                }
+                btn.classList.add(status);
+            });
+
+            verificarSetas();
+            if (botaoAtual) setTimeout(() => botaoAtual.scrollIntoView({ inline: 'center', block: 'nearest' }), 50);
         }
 
-        function scrollTimeline(val) { slider.scrollLeft += val; }
-        window.addEventListener('load', verificarSetas);
-        window.addEventListener('resize', verificarSetas);
-        setTimeout(verificarSetas, 150);
+        function atualizarBotaoConfirmar() {
+            const hoje = new Date();
+            const chave = `${hoje.getFullYear()}-${hoje.getMonth()}`;
+            const confirmado = !!state.pagamentos[chave];
+            const btn = document.getElementById('btnConfirmarPagamento');
+            btn.classList.toggle('confirmado', confirmado);
+            btn.innerText = confirmado ? 'Pagamento Confirmado' : 'Confirmar Pagamento';
+        }
 
-        window.addEventListener('click', function(e) {
+        async function toggleConfirmacaoPagamento() {
+            const hoje = new Date();
+            const chave = `${hoje.getFullYear()}-${hoje.getMonth()}`;
+            const novoValor = !state.pagamentos[chave];
+            await enviarMutacao({ action: 'setPagamento', data: { anoMes: chave, confirmado: novoValor } });
+        }
+
+        window.addEventListener('resize', verificarSetas);
+        window.addEventListener('click', function (e) {
             if (!document.getElementById('btnAno').contains(e.target)) {
                 document.getElementById('dropdownAno').classList.remove('active');
             }
         });
 
-        // CHAVEADORES DE CRIAÇÃO (CREATE)
-        function openModalValentina() { 
-            cardSendoEditado = null;
-            document.getElementById('titleModalValentina').innerText = "Nova Entrada Valentina";
+        // ===================== PAINEL VALENTINA =====================
+        function renderSelectSubcat(valorSelecionado) {
+            const select = document.getElementById('selectSubcat');
+            select.innerHTML = '';
+            Object.keys(state.categorias).forEach(slot => {
+                const cat = state.categorias[slot];
+                const opt = document.createElement('option');
+                opt.value = slot; opt.text = cat.label;
+                opt.setAttribute('data-color', cat.color);
+                select.appendChild(opt);
+            });
+            if (valorSelecionado) select.value = valorSelecionado;
+        }
+
+        function renderValentinaItens() {
+            const container = document.getElementById('listaGastosContainer');
+            if (state.valentina.length === 0) {
+                container.innerHTML = '<p class="estado-vazio">Nenhum lançamento ainda. Toque em "+" para adicionar.</p>';
+                return;
+            }
+            container.innerHTML = state.valentina.map(item => {
+                const cat = state.categorias[item.slot] || { label: item.slot, color: '#cccccc' };
+                return `<div class="sub-card-item" data-id="${item.id}" data-type="valentina" data-slot="${item.slot}" data-color="${cat.color}" onclick="editarCard(this)" style="border-left-color: ${cat.color};">
+                    <div class="item-detalhes">
+                        <div class="item-nome">${escapeHtml(item.nome)}</div>
+                        <div class="item-meta">${escapeHtml(cat.label)}</div>
+                    </div>
+                    <div class="item-preco">${formatValor(item.valor)}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function openModalCategoriasValentina() {
+            document.getElementById('nomeRecorrentes').value = state.categorias.recorrentes.label;
+            document.getElementById('corRecorrentes').value = state.categorias.recorrentes.color;
+            document.getElementById('nomeExtraordinarios').value = state.categorias.extraordinarios.label;
+            document.getElementById('corExtraordinarios').value = state.categorias.extraordinarios.color;
+            document.getElementById('nomeCreditos').value = state.categorias.creditos.label;
+            document.getElementById('corCreditos').value = state.categorias.creditos.color;
+            document.getElementById('modalCategoriasValentina').classList.add('active');
+        }
+
+        async function salvarCategoriasValentina() {
+            const categorias = {
+                recorrentes: { label: document.getElementById('nomeRecorrentes').value || 'Gastos Recorrentes', color: document.getElementById('corRecorrentes').value },
+                extraordinarios: { label: document.getElementById('nomeExtraordinarios').value || 'Gastos Extraordinários', color: document.getElementById('corExtraordinarios').value },
+                creditos: { label: document.getElementById('nomeCreditos').value || 'Créditos Ana', color: document.getElementById('corCreditos').value }
+            };
+            closeModal('modalCategoriasValentina');
+            await enviarMutacao({ action: 'updateCategorias', data: categorias });
+        }
+
+        function openModalValentina() {
+            cardSendoEditadoId = null; cardSendoEditadoTipo = null;
+            document.getElementById('titleModalValentina').innerText = 'Nova Entrada Valentina';
             document.getElementById('inputNomeGasto').value = '';
             document.getElementById('valorCustoInput').value = '';
-            document.getElementById('selectSubcat').value = 'Gastos Fixos';
-            gerenciarEstadoGasto();
-            document.getElementById('modalValentina').classList.add('active'); 
+            document.getElementById('btnExcluirValentina').style.display = 'none';
+            renderSelectSubcat('recorrentes');
+            document.getElementById('modalValentina').classList.add('active');
         }
 
-        function openModalFreela() { 
-            cardSendoEditado = null;
-            document.getElementById('titleModalFreela').innerText = "Nova Entrada Freela";
-            document.getElementById('inputNomeJob').value = '';
-            document.getElementById('inputValorFreela').value = '';
-            document.getElementById('selectCliente').value = 'Edenred';
-            gerenciarEstadoCliente();
-            document.getElementById('modalFreela').classList.add('active'); 
+        async function salvarGastosValentina() {
+            const nome = document.getElementById('inputNomeGasto').value || 'Despesa';
+            const slot = document.getElementById('selectSubcat').value;
+            const valor = parseFloat(document.getElementById('valorCustoInput').value || 0);
+            const payload = cardSendoEditadoId
+                ? { action: 'updateValentina', data: { id: cardSendoEditadoId, nome, slot, valor } }
+                : { action: 'addValentina', data: { nome, slot, valor } };
+            closeModal('modalValentina');
+            await enviarMutacao(payload);
         }
 
-        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        function calcularSlotTotal(slot) {
+            return state.valentina.filter(i => i.slot === slot).reduce((acc, i) => acc + i.valor, 0);
+        }
 
-        // GERENCIADORES DE ESTADO SÉRIES ESPELHADAS
-        function gerenciarEstadoGasto() {
-            const select = document.getElementById('selectSubcat');
-            const inputNomeNovo = document.getElementById('inputNovaSubcatNome');
-            const labelNome = document.getElementById('labelSubcatNome');
-            const pickerCor = document.getElementById('inputNovaSubcatCor');
+        function recalcularValentina() {
+            const rec = calcularSlotTotal('recorrentes');
+            const ext = calcularSlotTotal('extraordinarios');
+            const cred = calcularSlotTotal('creditos');
+            const total = rec + ext - cred;
+            document.getElementById('totalValentina').innerText = formatValor(total);
+            window._valentinaTotal = total;
+            atualizarBarrasValentina(rec, ext, cred);
+            recalcularGeral();
+        }
 
-            if (select.value === 'nova') {
-                labelNome.innerText = "Nome da Nova Categoria";
-                inputNomeNovo.disabled = false; inputNomeNovo.value = '';
-                inputNomeNovo.placeholder = "Ex: Gastos Escolares...";
-                pickerCor.value = "#ff8a80"; 
-            } else {
-                labelNome.innerText = "Categoria Selecionada";
-                inputNomeNovo.disabled = true; inputNomeNovo.value = select.value;
-                pickerCor.value = select.options[select.selectedIndex].getAttribute('data-color');
+        function configurarBarra(id, valor, totalGrupo, label, color) {
+            const linha = document.getElementById(id);
+            if (valor <= 0) { linha.style.display = 'none'; return; }
+            linha.style.display = 'flex';
+            const pct = totalGrupo > 0 ? Math.round((valor / totalGrupo) * 100) : 0;
+            linha.querySelector('.linha-meta-info span').innerText = label;
+            const barra = linha.querySelector('.barra-preenchimento-h');
+            barra.style.width = pct + '%';
+            barra.style.backgroundColor = color;
+            barra.innerText = pct + '%';
+        }
+
+        function atualizarBarrasValentina(rec, ext, cred) {
+            const totalMag = rec + ext + cred;
+            const grupo = document.getElementById('grupoBarrasValentina');
+            if (totalMag <= 0) { grupo.style.display = 'none'; checkDivisor(); return; }
+            grupo.style.display = 'flex';
+            configurarBarra('graph-recorrentes', rec, totalMag, state.categorias.recorrentes.label, state.categorias.recorrentes.color);
+            configurarBarra('graph-extraordinarios', ext, totalMag, state.categorias.extraordinarios.label, state.categorias.extraordinarios.color);
+            configurarBarra('graph-creditos', cred, totalMag, state.categorias.creditos.label, state.categorias.creditos.color);
+            checkDivisor();
+        }
+
+        // ===================== PAINEL FREELA =====================
+        function renderFreelaItens() {
+            const container = document.getElementById('listaFreelasContainer');
+            if (state.freela.length === 0) {
+                container.innerHTML = '<p class="estado-vazio">Nenhum lançamento ainda. Toque em "+" para adicionar.</p>';
+                return;
             }
+            container.innerHTML = state.freela.map(item => `
+                <div class="sub-card-item" data-id="${item.id}" data-type="freela" data-cliente="${escapeHtml(item.cliente)}" data-color="${item.cor}" onclick="editarCard(this)" style="border-left-color: ${item.cor};">
+                    <div class="item-detalhes">
+                        <div class="item-nome">${escapeHtml(item.nome)}</div>
+                        <div class="item-meta">${escapeHtml(item.cliente)}</div>
+                    </div>
+                    <div class="item-preco">${formatValor(item.valor)}</div>
+                </div>`).join('');
+        }
+
+        function renderSelectCliente(valorSelecionado) {
+            const select = document.getElementById('selectCliente');
+            select.innerHTML = '';
+            const vistos = new Set();
+            state.freela.forEach(item => {
+                if (!vistos.has(item.cliente)) {
+                    vistos.add(item.cliente);
+                    const opt = document.createElement('option');
+                    opt.value = item.cliente; opt.text = item.cliente;
+                    opt.setAttribute('data-color', item.cor);
+                    select.appendChild(opt);
+                }
+            });
+            const optNovo = document.createElement('option');
+            optNovo.value = 'novo'; optNovo.text = '+ Novo Cliente';
+            select.appendChild(optNovo);
+            if (valorSelecionado) select.value = valorSelecionado;
         }
 
         function gerenciarEstadoCliente() {
@@ -685,144 +959,182 @@
             const pickerCor = document.getElementById('inputNovoClienteCor');
 
             if (select.value === 'novo') {
-                labelNome.innerText = "Nome do Novo Cliente";
+                labelNome.innerText = 'Nome do Novo Cliente';
                 inputNomeNovo.disabled = false; inputNomeNovo.value = '';
-                inputNomeNovo.placeholder = "Ex: Catena Padel, Nike...";
-                pickerCor.value = "#b4a8ff"; 
+                inputNomeNovo.placeholder = 'Ex: Catena Padel, Nike...';
+                pickerCor.value = '#b4a8ff';
             } else {
-                labelNome.innerText = "Cliente Selecionado";
+                labelNome.innerText = 'Cliente Selecionado';
                 inputNomeNovo.disabled = true; inputNomeNovo.value = select.value;
-                pickerCor.value = select.options[select.selectedIndex].getAttribute('data-color');
+                const opt = select.options[select.selectedIndex];
+                pickerCor.value = opt ? (opt.getAttribute('data-color') || '#b4a8ff') : '#b4a8ff';
             }
         }
 
-        // CHAVEADOR DE EDIÇÃO (UPDATE)
+        function openModalFreela() {
+            cardSendoEditadoId = null; cardSendoEditadoTipo = null;
+            document.getElementById('titleModalFreela').innerText = 'Nova Entrada Freela';
+            document.getElementById('inputNomeJob').value = '';
+            document.getElementById('inputValorFreela').value = '';
+            document.getElementById('btnExcluirFreela').style.display = 'none';
+            renderSelectCliente();
+            gerenciarEstadoCliente();
+            document.getElementById('modalFreela').classList.add('active');
+        }
+
+        async function salvarFreela() {
+            const nome = document.getElementById('inputNomeJob').value || 'Job';
+            const select = document.getElementById('selectCliente');
+            let cliente = select.value;
+            const cor = document.getElementById('inputNovoClienteCor').value;
+            if (cliente === 'novo') {
+                cliente = document.getElementById('inputNovoClienteNome').value || 'Novo Cliente';
+            }
+            const valor = parseFloat(document.getElementById('inputValorFreela').value || 0);
+            const payload = cardSendoEditadoId
+                ? { action: 'updateFreela', data: { id: cardSendoEditadoId, nome, cliente, cor, valor } }
+                : { action: 'addFreela', data: { nome, cliente, cor, valor } };
+            closeModal('modalFreela');
+            await enviarMutacao(payload);
+        }
+
+        function recalcularFreela() {
+            let total = 0;
+            const porCliente = {};
+            state.freela.forEach(item => {
+                total += item.valor;
+                if (!porCliente[item.cliente]) porCliente[item.cliente] = { valor: 0, cor: item.cor };
+                porCliente[item.cliente].valor += item.valor;
+            });
+            document.getElementById('totalFreela').innerText = formatValor(total);
+            window._freelaTotal = total;
+            atualizarBarrasFreela(porCliente, total);
+            recalcularGeral();
+        }
+
+        function atualizarBarrasFreela(porCliente, total) {
+            const grupo = document.getElementById('grupoBarrasFreela');
+            const container = document.getElementById('listaBarrasFreela');
+            container.innerHTML = '';
+            const clientes = Object.keys(porCliente);
+            if (clientes.length === 0 || total <= 0) { grupo.style.display = 'none'; checkDivisor(); return; }
+            grupo.style.display = 'flex';
+            clientes.forEach(nome => {
+                const dados = porCliente[nome];
+                const pct = total > 0 ? Math.round((dados.valor / total) * 100) : 0;
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="linha-grafico">
+                        <div class="linha-meta-info"><span>${escapeHtml(nome)}</span></div>
+                        <div class="barra-horizontal-wrapper">
+                            <div class="barra-preenchimento-h" style="width: ${pct}%; background-color: ${dados.cor};">${pct}%</div>
+                        </div>
+                    </div>`);
+            });
+            checkDivisor();
+        }
+
+        // ===================== TOTAIS GERAIS =====================
+        function recalcularGeral() {
+            const total = (window._valentinaTotal || 0) + (window._freelaTotal || 0);
+            document.getElementById('totalGeral').innerText = formatValor(total);
+        }
+
+        function checkDivisor() {
+            const v = document.getElementById('grupoBarrasValentina');
+            const f = document.getElementById('grupoBarrasFreela');
+            const divisor = document.getElementById('divisorGrupos');
+            divisor.style.display = (v.style.display !== 'none' && f.style.display !== 'none') ? 'block' : 'none';
+        }
+
+        // ===================== EDIÇÃO / EXCLUSÃO (genérico p/ ambos os painéis) =====================
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
         function editarCard(elemento) {
-            cardSendoEditado = elemento;
             const tipo = elemento.getAttribute('data-type');
-            const nome = elemento.querySelector('.item-nome').innerText;
-            const valor = parseFloat(elemento.querySelector('.item-preco').innerText.replace('R$ ', '').replace('.', '').replace(',', '.'));
+            const id = elemento.getAttribute('data-id');
+            cardSendoEditadoId = id;
+            cardSendoEditadoTipo = tipo;
 
             if (tipo === 'freela') {
-                document.getElementById('titleModalFreela').innerText = "Editar Entrada Freela";
-                document.getElementById('inputNomeJob').value = nome;
-                document.getElementById('inputValorFreela').value = valor;
-                
-                const cliente = elemento.getAttribute('data-cliente');
-                const select = document.getElementById('selectCliente');
-                
-                if (!select.querySelector(`option[value="${cliente}"]`)) {
-                    const opt = document.createElement('option');
-                    opt.value = cliente; opt.text = cliente;
-                    opt.setAttribute('data-color', elemento.getAttribute('data-color'));
-                    select.add(opt, select.options[select.length - 1]);
-                }
-                select.value = cliente;
+                const item = state.freela.find(i => String(i.id) === String(id));
+                if (!item) return;
+                document.getElementById('titleModalFreela').innerText = 'Editar Entrada Freela';
+                document.getElementById('inputNomeJob').value = item.nome;
+                document.getElementById('inputValorFreela').value = item.valor;
+                document.getElementById('btnExcluirFreela').style.display = 'inline-block';
+                renderSelectCliente(item.cliente);
                 gerenciarEstadoCliente();
                 document.getElementById('modalFreela').classList.add('active');
             } else {
-                document.getElementById('titleModalValentina').innerText = "Editar Entrada Valentina";
-                document.getElementById('inputNomeGasto').value = nome;
-                document.getElementById('valorCustoInput').value = valor;
-
-                const subcat = elemento.getAttribute('data-subcat');
-                const selectSub = document.getElementById('selectSubcat');
-
-                if (!selectSub.querySelector(`option[value="${subcat}"]`)) {
-                    const opt = document.createElement('option');
-                    opt.value = subcat; opt.text = subcat;
-                    opt.setAttribute('data-color', elemento.getAttribute('data-color'));
-                    selectSub.add(opt, selectSub.options[selectSub.length - 1]);
-                }
-                selectSub.value = subcat;
-                gerenciarEstadoGasto();
+                const item = state.valentina.find(i => String(i.id) === String(id));
+                if (!item) return;
+                document.getElementById('titleModalValentina').innerText = 'Editar Entrada Valentina';
+                document.getElementById('inputNomeGasto').value = item.nome;
+                document.getElementById('valorCustoInput').value = item.valor;
+                document.getElementById('btnExcluirValentina').style.display = 'inline-block';
+                renderSelectSubcat(item.slot);
                 document.getElementById('modalValentina').classList.add('active');
             }
         }
 
-        // SALVAMENTO GASTOS VALENTINA
-        function salvarGastosValentina() {
-            const nomeGasto = document.getElementById('inputNomeGasto').value || "Despesa";
-            const selectSub = document.getElementById('selectSubcat');
-            let nomeSub = selectSub.value;
-            let corSub = document.getElementById('inputNovaSubcatCor').value;
-            const valorMao = parseFloat(document.getElementById('valorCustoInput').value || 0).toFixed(2);
-            const valorFormatado = `R$ ${valorMao.replace('.', ',')}`;
-
-            if (nomeSub === 'nova') {
-                nomeSub = document.getElementById('inputNovaSubcatNome').value || "Nova Categoria";
-                const opt = document.createElement('option');
-                opt.value = nomeSub; opt.text = nomeSub;
-                opt.setAttribute('data-color', corSub);
-                selectSub.add(opt, selectSub.options[selectSub.length - 1]);
-                selectSub.value = nomeSub;
-            } else {
-                selectSub.options[selectSub.selectedIndex].setAttribute('data-color', corSub);
-            }
-
-            if (cardSendoEditado) {
-                cardSendoEditado.querySelector('.item-nome').innerText = nomeGasto;
-                cardSendoEditado.querySelector('.item-meta').innerText = nomeSub;
-                cardSendoEditado.querySelector('.item-preco').innerText = valorFormatado;
-                cardSendoEditado.style.borderLeftColor = corSub;
-                cardSendoEditado.setAttribute('data-subcat', nomeSub);
-                cardSendoEditado.setAttribute('data-color', corSub);
-            } else {
-                const novoHtml = `
-                    <div class="sub-card-item" data-type="valentina" data-subcat="${nomeSub}" data-color="${corSub}" onclick="editarCard(this)" style="border-left-color: ${corSub};">
-                        <div class="item-detalhes">
-                            <div class="item-nome">${nomeGasto}</div>
-                            <div class="item-meta">${nomeSub}</div>
-                        </div>
-                        <div class="item-preco">${valorFormatado}</div>
-                    </div>`;
-                document.getElementById('listaGastosContainer').insertAdjacentHTML('beforeend', novoHtml);
-            }
-            closeModal('modalValentina');
+        async function excluirEntrada(modalId) {
+            if (!cardSendoEditadoId) return;
+            if (!confirm('Tem certeza que deseja excluir esta entrada?')) return;
+            const action = cardSendoEditadoTipo === 'freela' ? 'deleteFreela' : 'deleteValentina';
+            const id = cardSendoEditadoId;
+            closeModal(modalId);
+            await enviarMutacao({ action, data: { id } });
         }
 
-        // SALVAMENTO FREELAS
-        function salvarFreela() {
-            const nomeJob = document.getElementById('inputNomeJob').value || "Job";
-            const selectCliente = document.getElementById('selectCliente');
-            let nomeCliente = selectCliente.value;
-            let corCliente = document.getElementById('inputNovoClienteCor').value;
-            const valorBruto = parseFloat(document.getElementById('inputValorFreela').value || 0).toFixed(2);
-            const valorFormatado = `R$ ${valorBruto.replace('.', ',')}`;
+        // ===================== ENVIO WHATSAPP =====================
+        function montarMensagemWhatsapp() {
+            const hoje = new Date();
+            const mesNome = NOMES_MESES[hoje.getMonth()];
+            const ano = hoje.getFullYear();
 
-            if (nomeCliente === 'novo') {
-                nomeCliente = document.getElementById('inputNovoClienteNome').value || "Novo Cliente";
-                const opt = document.createElement('option');
-                opt.value = nomeCliente; opt.text = nomeCliente;
-                opt.setAttribute('data-color', corCliente);
-                selectCliente.add(opt, selectCliente.options[selectCliente.length - 1]);
-                selectCliente.value = nomeCliente;
-            } else {
-                selectCliente.options[selectCliente.selectedIndex].setAttribute('data-color', corCliente);
-            }
+            let msg = `📋 *Resumo ${mesNome}/${ano} — Valentina*\n\n`;
 
-            if (cardSendoEditado) {
-                cardSendoEditado.querySelector('.item-nome').innerText = nomeJob;
-                cardSendoEditado.querySelector('.item-meta').innerText = nomeCliente;
-                cardSendoEditado.querySelector('.item-preco').innerText = valorFormatado;
-                cardSendoEditado.style.borderLeftColor = corCliente;
-                cardSendoEditado.setAttribute('data-cliente', nomeCliente);
-                cardSendoEditado.setAttribute('data-color', corCliente);
+            msg += `*Painel Valentina*\n`;
+            if (state.valentina.length === 0) {
+                msg += `Sem lançamentos no período.\n`;
             } else {
-                const novoHtml = `
-                    <div class="sub-card-item" data-type="freela" data-cliente="${nomeCliente}" data-color="${corCliente}" onclick="editarCard(this)" style="border-left-color: ${corCliente};">
-                        <div class="item-detalhes">
-                            <div class="item-nome">${nomeJob}</div>
-                            <div class="item-meta">${nomeCliente}</div>
-                        </div>
-                        <div class="item-preco">${valorFormatado}</div>
-                    </div>`;
-                document.getElementById('listaFreelasContainer').insertAdjacentHTML('beforeend', novoHtml);
+                state.valentina.forEach(item => {
+                    if (item.slot === 'creditos') {
+                        msg += `• ${item.nome} — − ${formatValor(item.valor)} (crédito)\n`;
+                    } else {
+                        msg += `• ${item.nome} — ${formatValor(item.valor)}\n`;
+                    }
+                });
             }
-            closeModal('modalFreela');
+            msg += `Subtotal: ${document.getElementById('totalValentina').innerText}\n\n`;
+
+            msg += `*Painel Freela*\n`;
+            if (state.freela.length === 0) {
+                msg += `Sem lançamentos no período.\n`;
+            } else {
+                state.freela.forEach(item => {
+                    msg += `• ${item.nome} (${item.cliente}) — ${formatValor(item.valor)}\n`;
+                });
+            }
+            msg += `Subtotal: ${document.getElementById('totalFreela').innerText}\n\n`;
+
+            msg += `💰 *Total a receber:* ${document.getElementById('totalGeral').innerText}\n\n`;
+            msg += `PIX: terenceagnezi@gmail.com`;
+
+            return msg;
         }
 
-        function copiarExtrato() { alert("Extrato copiado!"); }
+        function enviarWhatsapp() {
+            const mensagem = montarMensagemWhatsapp();
+            const url = `https://wa.me/${NUMERO_WHATSAPP_ANA}?text=${encodeURIComponent(mensagem)}`;
+            window.open(url, '_blank');
+        }
+
+        // ===================== INICIALIZAÇÃO =====================
+        window.addEventListener('load', () => {
+            verificarSetas();
+            carregarDados();
+        });
     </script>
 </body>
 </html>
