@@ -181,7 +181,7 @@
         /* DASHBOARD GRID */
         .dashboard {
             display: grid;
-            grid-template-columns: 1.15fr 0.925fr 0.925fr;
+            grid-template-columns: 0.925fr 0.925fr 1.15fr;
             gap: 24px;
         }
 
@@ -443,7 +443,42 @@
         <!-- DASHBOARD -->
         <div class="dashboard">
             
-            <!-- COLUNA 1: BALANÇO -->
+            <!-- COLUNA 1: PAINEL VALENTINA -->
+            <div class="bento-card">
+                <div>
+                    <div class="card-header">
+                        <h2>Painel Valentina</h2>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn-action-icon" onclick="openModalCategoriasValentina()" title="Editar categorias" style="font-size: 15px;">⚙</button>
+                            <button class="btn-action-icon" onclick="openModalValentina()">+</button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid-itens" id="listaGastosContainer"></div>
+                </div>
+                <div class="card-totalizador">
+                    <span class="total-label">Subtotal:</span>
+                    <span class="total-valor" id="totalValentina" style="color: var(--color-fixo); filter: brightness(0.85);">R$ 0,00</span>
+                </div>
+            </div>
+
+            <!-- COLUNA 2: PAINEL FREELA -->
+            <div class="bento-card">
+                <div>
+                    <div class="card-header">
+                        <h2>Painel Freela</h2>
+                        <button class="btn-action-icon" onclick="openModalFreela()">+</button>
+                    </div>
+                    
+                    <div class="grid-itens" id="listaFreelasContainer"></div>
+                </div>
+                <div class="card-totalizador">
+                    <span class="total-label">Subtotal:</span>
+                    <span class="total-valor" id="totalFreela" style="color: #2e7d32;">R$ 0,00</span>
+                </div>
+            </div>
+
+            <!-- COLUNA 3: BALANÇO -->
             <div class="card-balanco">
                 <div>
                     <div class="balanco-header" style="margin-bottom: 4px;">
@@ -484,41 +519,6 @@
                         <div class="grupo-label">Painel Freela</div>
                         <div id="listaBarrasFreela"></div>
                     </div>
-                </div>
-            </div>
-
-            <!-- COLUNA 2: PAINEL VALENTINA -->
-            <div class="bento-card">
-                <div>
-                    <div class="card-header">
-                        <h2>Painel Valentina</h2>
-                        <div style="display: flex; gap: 8px;">
-                            <button class="btn-action-icon" onclick="openModalCategoriasValentina()" title="Editar categorias" style="font-size: 15px;">⚙</button>
-                            <button class="btn-action-icon" onclick="openModalValentina()">+</button>
-                        </div>
-                    </div>
-                    
-                    <div class="grid-itens" id="listaGastosContainer"></div>
-                </div>
-                <div class="card-totalizador">
-                    <span class="total-label">Subtotal:</span>
-                    <span class="total-valor" id="totalValentina" style="color: var(--color-fixo); filter: brightness(0.85);">R$ 0,00</span>
-                </div>
-            </div>
-
-            <!-- COLUNA 3: PAINEL FREELA -->
-            <div class="bento-card">
-                <div>
-                    <div class="card-header">
-                        <h2>Painel Freela</h2>
-                        <button class="btn-action-icon" onclick="openModalFreela()">+</button>
-                    </div>
-                    
-                    <div class="grid-itens" id="listaFreelasContainer"></div>
-                </div>
-                <div class="card-totalizador">
-                    <span class="total-label">Subtotal:</span>
-                    <span class="total-valor" id="totalFreela" style="color: #2e7d32;">R$ 0,00</span>
                 </div>
             </div>
 
