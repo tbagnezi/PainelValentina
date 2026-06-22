@@ -152,12 +152,15 @@
 
         .aba-mes.pago { color: var(--status-pago-txt); }
         .aba-mes.aberto { color: var(--status-aberto-txt); }
-        .aba-mes.futuro { color: var(--status-futuro); cursor: default; }
+        .aba-mes.futuro { color: var(--status-futuro); }
         .aba-mes.atual {
             background-color: var(--status-atual-bg);
             color: var(--txt-light);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             padding: 8px 20px;
+        }
+        .aba-mes.selecionado:not(.atual) {
+            box-shadow: inset 0 0 0 2px currentColor;
         }
 
         .seta-navegacao {
@@ -420,18 +423,18 @@
             <button class="seta-navegacao" id="setaEsq" onclick="scrollTimeline(-150)">‹</button>
             <div class="slider-meses-container" id="sliderContainer">
                 <nav class="slider-meses" id="timelineSlider">
-                    <button class="aba-mes" data-mes="0">Jan</button>
-                    <button class="aba-mes" data-mes="1">Fev</button> 
-                    <button class="aba-mes" data-mes="2">Mar</button>
-                    <button class="aba-mes" data-mes="3">Abr</button>
-                    <button class="aba-mes" data-mes="4">Mai</button>
-                    <button class="aba-mes" data-mes="5">Jun</button> 
-                    <button class="aba-mes" data-mes="6">Jul</button>
-                    <button class="aba-mes" data-mes="7">Ago</button>
-                    <button class="aba-mes" data-mes="8">Set</button>
-                    <button class="aba-mes" data-mes="9">Out</button>
-                    <button class="aba-mes" data-mes="10">Nov</button>
-                    <button class="aba-mes" data-mes="11">Dez</button>
+                    <button class="aba-mes" data-mes="0" onclick="selecionarMes(0)">Jan</button>
+                    <button class="aba-mes" data-mes="1" onclick="selecionarMes(1)">Fev</button> 
+                    <button class="aba-mes" data-mes="2" onclick="selecionarMes(2)">Mar</button>
+                    <button class="aba-mes" data-mes="3" onclick="selecionarMes(3)">Abr</button>
+                    <button class="aba-mes" data-mes="4" onclick="selecionarMes(4)">Mai</button>
+                    <button class="aba-mes" data-mes="5" onclick="selecionarMes(5)">Jun</button> 
+                    <button class="aba-mes" data-mes="6" onclick="selecionarMes(6)">Jul</button>
+                    <button class="aba-mes" data-mes="7" onclick="selecionarMes(7)">Ago</button>
+                    <button class="aba-mes" data-mes="8" onclick="selecionarMes(8)">Set</button>
+                    <button class="aba-mes" data-mes="9" onclick="selecionarMes(9)">Out</button>
+                    <button class="aba-mes" data-mes="10" onclick="selecionarMes(10)">Nov</button>
+                    <button class="aba-mes" data-mes="11" onclick="selecionarMes(11)">Dez</button>
                 </nav>
             </div>
             <button class="seta-navegacao" id="setaDir" onclick="scrollTimeline(150)">›</button>
@@ -444,7 +447,7 @@
             <div class="card-balanco">
                 <div>
                     <div class="balanco-header" style="margin-bottom: 4px;">
-                        <span class="balanco-title">Participação no Mês</span>
+                        <span class="balanco-title" id="labelParticipacao">Participação no Mês</span>
                     </div>
                     <div class="balanco-resultado" style="margin-top: 0; border: none; padding-top: 0; margin-bottom: 24px;">
                         <p class="balanco-label">Total Geral a Receber</p>
@@ -647,7 +650,6 @@
         const API_URL = 'https://script.google.com/macros/s/AKfycbzOmYPdSwMItEWpKf8C5sPbo9n-I8YkYGKU_htvsqgCo3xGGXQMrGKX38ltJHY3ElMa/exec';
 
         const NUMERO_WHATSAPP_ANA = '555496441218';
-        const NOMES_MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
         // ===================== ESTADO GLOBAL (espelho dos dados da planilha) =====================
         let state = {
@@ -663,7 +665,24 @@
 
         let cardSendoEditadoId = null;
         let cardSendoEditadoTipo = null;
-        let anoSelecionado = 2026;
+        let cardSendoEditadoAnoMes = null;
+
+        // Mês/ano que está sendo visualizado e editado no momento (não necessariamente o mês real de hoje)
+        const _hoje = new Date();
+        let mesVisualizado = { ano: _hoje.getFullYear(), mes: _hoje.getMonth() };
+
+        function chaveMesVisualizado() { return `${mesVisualizado.ano}-${mesVisualizado.mes}`; }
+
+        const NOMES_MESES_COMPLETOS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+        function itensValentinaDoMes() {
+            const chave = chaveMesVisualizado();
+            return state.valentina.filter(i => i.anoMes === chave);
+        }
+        function itensFreelaDoMes() {
+            const chave = chaveMesVisualizado();
+            return state.freela.filter(i => i.anoMes === chave);
+        }
 
         // ===================== UTILITÁRIOS =====================
         function formatValor(num) {
@@ -727,6 +746,7 @@
         }
 
         function renderTudo() {
+            atualizarLabelMes();
             renderValentinaItens();
             renderFreelaItens();
             renderSelectCliente();
@@ -736,15 +756,25 @@
             atualizarBotaoConfirmar();
         }
 
+        function atualizarLabelMes() {
+            document.getElementById('labelParticipacao').innerText =
+                `Participação em ${NOMES_MESES_COMPLETOS[mesVisualizado.mes]}/${mesVisualizado.ano}`;
+        }
+
         // ===================== TIMELINE (ANO / MÊS) =====================
         function toggleAnoDropdown() { document.getElementById('dropdownAno').classList.toggle('active'); }
         function selecionarAno(ano, elementoClicado) {
-            anoSelecionado = ano;
+            mesVisualizado = { ano: ano, mes: mesVisualizado.mes };
             document.getElementById('anoSelecionado').innerText = ano;
             document.getElementById('dropdownAno').classList.remove('active');
             document.querySelectorAll('.ano-option').forEach(opt => opt.classList.remove('active'));
             elementoClicado.classList.add('active');
-            atualizarTimeline();
+            renderTudo();
+        }
+
+        function selecionarMes(idx) {
+            mesVisualizado = { ano: mesVisualizado.ano, mes: idx };
+            renderTudo();
         }
 
         const slider = document.getElementById('timelineSlider');
@@ -762,38 +792,40 @@
             const hoje = new Date();
             const anoReal = hoje.getFullYear();
             const mesReal = hoje.getMonth();
-            let botaoAtual = null;
+            let botaoFoco = null;
 
             document.querySelectorAll('.aba-mes').forEach(btn => {
                 const idx = parseInt(btn.getAttribute('data-mes'), 10);
-                btn.classList.remove('pago', 'aberto', 'atual', 'futuro');
+                btn.classList.remove('pago', 'aberto', 'atual', 'futuro', 'selecionado');
+
                 let status;
-                if (anoSelecionado === anoReal && idx === mesReal) {
+                if (mesVisualizado.ano === anoReal && idx === mesReal) {
                     status = 'atual';
-                    botaoAtual = btn;
                 } else {
-                    const ehPassado = anoSelecionado < anoReal || (anoSelecionado === anoReal && idx < mesReal);
-                    status = ehPassado ? (state.pagamentos[`${anoSelecionado}-${idx}`] ? 'pago' : 'aberto') : 'futuro';
+                    const ehPassado = mesVisualizado.ano < anoReal || (mesVisualizado.ano === anoReal && idx < mesReal);
+                    status = ehPassado ? (state.pagamentos[`${mesVisualizado.ano}-${idx}`] ? 'pago' : 'aberto') : 'futuro';
                 }
                 btn.classList.add(status);
+
+                if (idx === mesVisualizado.mes) {
+                    btn.classList.add('selecionado');
+                    botaoFoco = btn;
+                }
             });
 
             verificarSetas();
-            if (botaoAtual) setTimeout(() => botaoAtual.scrollIntoView({ inline: 'center', block: 'nearest' }), 50);
+            if (botaoFoco) setTimeout(() => botaoFoco.scrollIntoView({ inline: 'center', block: 'nearest' }), 50);
         }
 
         function atualizarBotaoConfirmar() {
-            const hoje = new Date();
-            const chave = `${hoje.getFullYear()}-${hoje.getMonth()}`;
-            const confirmado = !!state.pagamentos[chave];
+            const confirmado = !!state.pagamentos[chaveMesVisualizado()];
             const btn = document.getElementById('btnConfirmarPagamento');
             btn.classList.toggle('confirmado', confirmado);
             btn.innerText = confirmado ? 'Pagamento Confirmado' : 'Confirmar Pagamento';
         }
 
         async function toggleConfirmacaoPagamento() {
-            const hoje = new Date();
-            const chave = `${hoje.getFullYear()}-${hoje.getMonth()}`;
+            const chave = chaveMesVisualizado();
             const novoValor = !state.pagamentos[chave];
             await enviarMutacao({ action: 'setPagamento', data: { anoMes: chave, confirmado: novoValor } });
         }
@@ -821,11 +853,12 @@
 
         function renderValentinaItens() {
             const container = document.getElementById('listaGastosContainer');
-            if (state.valentina.length === 0) {
-                container.innerHTML = '<p class="estado-vazio">Nenhum lançamento ainda. Toque em "+" para adicionar.</p>';
+            const itens = itensValentinaDoMes();
+            if (itens.length === 0) {
+                container.innerHTML = '<p class="estado-vazio">Nenhum lançamento neste mês. Toque em "+" para adicionar.</p>';
                 return;
             }
-            container.innerHTML = state.valentina.map(item => {
+            container.innerHTML = itens.map(item => {
                 const cat = state.categorias[item.slot] || { label: item.slot, color: '#cccccc' };
                 return `<div class="sub-card-item" data-id="${item.id}" data-type="valentina" data-slot="${item.slot}" data-color="${cat.color}" onclick="editarCard(this)" style="border-left-color: ${cat.color};">
                     <div class="item-detalhes">
@@ -858,7 +891,7 @@
         }
 
         function openModalValentina() {
-            cardSendoEditadoId = null; cardSendoEditadoTipo = null;
+            cardSendoEditadoId = null; cardSendoEditadoTipo = null; cardSendoEditadoAnoMes = null;
             document.getElementById('titleModalValentina').innerText = 'Nova Entrada Valentina';
             document.getElementById('inputNomeGasto').value = '';
             document.getElementById('valorCustoInput').value = '';
@@ -872,14 +905,14 @@
             const slot = document.getElementById('selectSubcat').value;
             const valor = parseFloat(document.getElementById('valorCustoInput').value || 0);
             const payload = cardSendoEditadoId
-                ? { action: 'updateValentina', data: { id: cardSendoEditadoId, nome, slot, valor } }
-                : { action: 'addValentina', data: { nome, slot, valor } };
+                ? { action: 'updateValentina', data: { id: cardSendoEditadoId, nome, slot, valor, anoMes: cardSendoEditadoAnoMes } }
+                : { action: 'addValentina', data: { nome, slot, valor, anoMes: chaveMesVisualizado() } };
             closeModal('modalValentina');
             await enviarMutacao(payload);
         }
 
         function calcularSlotTotal(slot) {
-            return state.valentina.filter(i => i.slot === slot).reduce((acc, i) => acc + i.valor, 0);
+            return itensValentinaDoMes().filter(i => i.slot === slot).reduce((acc, i) => acc + i.valor, 0);
         }
 
         function recalcularValentina() {
@@ -919,11 +952,12 @@
         // ===================== PAINEL FREELA =====================
         function renderFreelaItens() {
             const container = document.getElementById('listaFreelasContainer');
-            if (state.freela.length === 0) {
-                container.innerHTML = '<p class="estado-vazio">Nenhum lançamento ainda. Toque em "+" para adicionar.</p>';
+            const itens = itensFreelaDoMes();
+            if (itens.length === 0) {
+                container.innerHTML = '<p class="estado-vazio">Nenhum lançamento neste mês. Toque em "+" para adicionar.</p>';
                 return;
             }
-            container.innerHTML = state.freela.map(item => `
+            container.innerHTML = itens.map(item => `
                 <div class="sub-card-item" data-id="${item.id}" data-type="freela" data-cliente="${escapeHtml(item.cliente)}" data-color="${item.cor}" onclick="editarCard(this)" style="border-left-color: ${item.cor};">
                     <div class="item-detalhes">
                         <div class="item-nome">${escapeHtml(item.nome)}</div>
@@ -972,7 +1006,7 @@
         }
 
         function openModalFreela() {
-            cardSendoEditadoId = null; cardSendoEditadoTipo = null;
+            cardSendoEditadoId = null; cardSendoEditadoTipo = null; cardSendoEditadoAnoMes = null;
             document.getElementById('titleModalFreela').innerText = 'Nova Entrada Freela';
             document.getElementById('inputNomeJob').value = '';
             document.getElementById('inputValorFreela').value = '';
@@ -992,8 +1026,8 @@
             }
             const valor = parseFloat(document.getElementById('inputValorFreela').value || 0);
             const payload = cardSendoEditadoId
-                ? { action: 'updateFreela', data: { id: cardSendoEditadoId, nome, cliente, cor, valor } }
-                : { action: 'addFreela', data: { nome, cliente, cor, valor } };
+                ? { action: 'updateFreela', data: { id: cardSendoEditadoId, nome, cliente, cor, valor, anoMes: cardSendoEditadoAnoMes } }
+                : { action: 'addFreela', data: { nome, cliente, cor, valor, anoMes: chaveMesVisualizado() } };
             closeModal('modalFreela');
             await enviarMutacao(payload);
         }
@@ -1001,7 +1035,7 @@
         function recalcularFreela() {
             let total = 0;
             const porCliente = {};
-            state.freela.forEach(item => {
+            itensFreelaDoMes().forEach(item => {
                 total += item.valor;
                 if (!porCliente[item.cliente]) porCliente[item.cliente] = { valor: 0, cor: item.cor };
                 porCliente[item.cliente].valor += item.valor;
@@ -1058,6 +1092,7 @@
             if (tipo === 'freela') {
                 const item = state.freela.find(i => String(i.id) === String(id));
                 if (!item) return;
+                cardSendoEditadoAnoMes = item.anoMes;
                 document.getElementById('titleModalFreela').innerText = 'Editar Entrada Freela';
                 document.getElementById('inputNomeJob').value = item.nome;
                 document.getElementById('inputValorFreela').value = item.valor;
@@ -1068,6 +1103,7 @@
             } else {
                 const item = state.valentina.find(i => String(i.id) === String(id));
                 if (!item) return;
+                cardSendoEditadoAnoMes = item.anoMes;
                 document.getElementById('titleModalValentina').innerText = 'Editar Entrada Valentina';
                 document.getElementById('inputNomeGasto').value = item.nome;
                 document.getElementById('valorCustoInput').value = item.valor;
@@ -1088,17 +1124,18 @@
 
         // ===================== ENVIO WHATSAPP =====================
         function montarMensagemWhatsapp() {
-            const hoje = new Date();
-            const mesNome = NOMES_MESES[hoje.getMonth()];
-            const ano = hoje.getFullYear();
+            const mesNome = NOMES_MESES_COMPLETOS[mesVisualizado.mes];
+            const ano = mesVisualizado.ano;
+            const itensValentina = itensValentinaDoMes();
+            const itensFreela = itensFreelaDoMes();
 
             let msg = `📋 *Resumo ${mesNome}/${ano} — Valentina*\n\n`;
 
             msg += `*Painel Valentina*\n`;
-            if (state.valentina.length === 0) {
+            if (itensValentina.length === 0) {
                 msg += `Sem lançamentos no período.\n`;
             } else {
-                state.valentina.forEach(item => {
+                itensValentina.forEach(item => {
                     if (item.slot === 'creditos') {
                         msg += `• ${item.nome} — − ${formatValor(item.valor)} (crédito)\n`;
                     } else {
@@ -1109,10 +1146,10 @@
             msg += `Subtotal: ${document.getElementById('totalValentina').innerText}\n\n`;
 
             msg += `*Painel Freela*\n`;
-            if (state.freela.length === 0) {
+            if (itensFreela.length === 0) {
                 msg += `Sem lançamentos no período.\n`;
             } else {
-                state.freela.forEach(item => {
+                itensFreela.forEach(item => {
                     msg += `• ${item.nome} (${item.cliente}) — ${formatValor(item.valor)}\n`;
                 });
             }
